@@ -4,399 +4,534 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
       body {
         font-family: var(--vscode-font-family);
         color: var(--vscode-foreground);
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-      }
-
-      .section {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .section-header {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      .section-header h3 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--vscode-foreground);
-      }
-
-      .refresh-button {
-        padding: 4px 8px;
-        background: transparent;
-        color: var(--vscode-button-foreground);
-        border: 1px solid var(--vscode-button-background);
-        border-radius: 4px;
-        cursor: pointer;
+        background: var(--vscode-sideBar-background);
+        padding: 0;
+        overflow-y: auto;
         font-size: 12px;
       }
 
-      .refresh-button:hover {
-        background: var(--vscode-button-background);
-      }
-
-      .cards-container {
+      /* ── Toolbar ─────────────────────────────────── */
+      .toolbar {
         display: flex;
-        flex-direction: column;
-        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--vscode-widget-border);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--vscode-sideBar-background);
+        backdrop-filter: blur(8px);
+      }
+      .toolbar-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.6;
+      }
+      .toolbar-actions { display: flex; gap: 6px; }
+      .toolbar-btn {
+        background: transparent;
+        border: 1px solid var(--vscode-widget-border);
+        color: var(--vscode-foreground);
+        padding: 3px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.15s;
+      }
+      .toolbar-btn:hover {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border-color: var(--vscode-button-background);
       }
 
+      /* ── Sections ────────────────────────────────── */
+      .section { border-bottom: 1px solid var(--vscode-widget-border); }
+      .section:last-child { border-bottom: none; }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.1s;
+      }
+      .section-header:hover { background: var(--vscode-list-hoverBackground); }
+      .section-header h3 {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .section-count {
+        font-size: 10px;
+        opacity: 0.5;
+        font-weight: 400;
+      }
+      .chevron {
+        font-size: 10px;
+        transition: transform 0.2s;
+        opacity: 0.5;
+      }
+      .section.collapsed .chevron { transform: rotate(-90deg); }
+      .section.collapsed .section-body { display: none; }
+
+      .section-body { padding: 0 10px 10px; }
+
+      /* ── Cards ────────────────────────────────────── */
       .card {
         background: var(--vscode-editor-background);
         border: 1px solid var(--vscode-widget-border);
-        border-radius: 8px;
-        padding: 12px;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .card-main {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .card-title {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--vscode-editor-foreground);
-        white-space: nowrap;
+        border-radius: 6px;
+        margin-bottom: 8px;
         overflow: hidden;
-        text-overflow: ellipsis;
+        transition: border-color 0.15s;
       }
+      .card:hover { border-color: var(--vscode-focusBorder); }
 
-      .card-subtitle {
-        font-size: 12px;
-        color: var(--vscode-descriptionForeground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .card-content {
-        display: grid;
-        grid-template-columns: minmax(80px, auto) 1fr;
-        gap: 6px 12px;
-        font-size: 12px;
-      }
-
-      .card-footer {
+      .card-top {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: space-between;
         align-items: center;
-        padding-top: 12px;
-        border-top: 1px solid var(--vscode-widget-border);
+        justify-content: space-between;
+        padding: 10px 12px 6px;
       }
-
-      .label {
-        color: var(--vscode-descriptionForeground);
-        white-space: nowrap;
-      }
-
-      .value {
-        color: var(--vscode-foreground);
+      .card-name {
+        font-weight: 600;
+        font-size: 13px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex: 1;
         min-width: 0;
       }
 
-      .status {
+      .card-meta {
+        padding: 0 12px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+      .meta-row .icon { width: 14px; text-align: center; flex-shrink: 0; }
+
+      /* ── Status Badges ───────────────────────────── */
+      .badge {
         padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        background: var(--vscode-badge-background);
-        color: var(--vscode-badge-foreground);
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
         white-space: nowrap;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        flex-shrink: 0;
       }
+      .badge-running { background: #10B981; color: #fff; }
+      .badge-stopped, .badge-exited { background: #6B7280; color: #fff; }
+      .badge-deploying, .badge-starting { background: #F59E0B; color: #fff; animation: pulse 1.5s infinite; }
+      .badge-error, .badge-failed { background: #EF4444; color: #fff; }
+      .badge-online { background: #10B981; color: #fff; }
+      .badge-offline, .badge-unreachable { background: #EF4444; color: #fff; }
 
-      .deployment-status {
-        animation: pulse 2s infinite;
-        background: var(--vscode-statusBarItem-warningBackground);
-        color: var(--vscode-statusBarItem-warningForeground);
+      /* ── Deploy Button (Vercel-style) ─────────────── */
+      .deploy-row {
+        padding: 6px 12px 10px;
       }
-
-      .deployment-card {
-        position: relative;
-        border-left: 4px solid var(--vscode-statusBarItem-warningBackground);
-      }
-
-      .deployment-time {
-        font-size: 12px;
-        color: var(--vscode-descriptionForeground);
-      }
-
-      .commit-message {
-        font-size: 12px;
-        color: var(--vscode-foreground);
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .deploy-button {
-        padding: 4px 12px;
-        background: var(--vscode-button-background);
-        color: var(--vscode-button-foreground);
+      .deploy-btn {
+        width: 100%;
+        padding: 8px 0;
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        color: #fff;
         border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s;
+        letter-spacing: 0.3px;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+      }
+      .deploy-btn:hover {
+        background: linear-gradient(135deg, #2563EB, #1D4ED8);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
+        transform: translateY(-1px);
+      }
+      .deploy-btn:active { transform: translateY(0); }
+
+      /* ── Action Buttons Row ──────────────────────── */
+      .actions-row {
+        display: flex;
+        gap: 2px;
+        padding: 0 12px 8px;
+        flex-wrap: wrap;
+      }
+      .action-btn {
+        background: transparent;
+        border: 1px solid var(--vscode-widget-border);
+        color: var(--vscode-foreground);
+        padding: 3px 8px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        transition: all 0.12s;
         white-space: nowrap;
       }
+      .action-btn:hover {
+        background: var(--vscode-button-secondaryBackground);
+        border-color: var(--vscode-focusBorder);
+      }
+      .action-btn.danger:hover { background: rgba(239, 68, 68, 0.15); border-color: #EF4444; }
+      .action-btn.success:hover { background: rgba(16, 185, 129, 0.15); border-color: #10B981; }
 
-      .deploy-button:hover {
-        background: var(--vscode-button-hoverBackground);
+      /* ── Deployment History ──────────────────────── */
+      .deployment-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--vscode-widget-border);
+      }
+      .deployment-item:last-child { border-bottom: none; }
+      .deployment-info { flex: 1; min-width: 0; }
+      .deployment-app {
+        font-weight: 600;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .deployment-detail {
+        font-size: 10px;
+        opacity: 0.6;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
+      /* ── Empty State ─────────────────────────────── */
+      .empty {
+        text-align: center;
+        padding: 16px;
+        opacity: 0.5;
+        font-style: italic;
+        font-size: 11px;
+      }
+
+      /* ── Loading ─────────────────────────────────── */
       .loading {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
         padding: 20px;
-        color: var(--vscode-descriptionForeground);
+        opacity: 0.6;
       }
-
-      .loading-spinner {
-        width: 16px;
-        height: 16px;
+      .spinner {
+        width: 14px;
+        height: 14px;
         border: 2px solid var(--vscode-widget-border);
         border-top-color: var(--vscode-button-background);
         border-radius: 50%;
-        animation: spin 1s linear infinite;
+        animation: spin 0.8s linear infinite;
       }
 
-      .refresh-button {
-        position: relative;
-        display: inline-flex;
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+      /* ── Server / DB compact card ────────────────── */
+      .compact-card {
+        display: flex;
         align-items: center;
-        gap: 4px;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-widget-border);
+        border-radius: 6px;
+        margin-bottom: 6px;
+        transition: border-color 0.15s;
       }
-
-      .refresh-button.refreshing {
-        opacity: 0.7;
-        cursor: not-allowed;
+      .compact-card:hover { border-color: var(--vscode-focusBorder); }
+      .compact-left { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+      .compact-name {
+        font-weight: 600;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-
-      .empty {
-        text-align: center;
-        padding: 20px;
-        color: var(--vscode-descriptionForeground);
-        font-style: italic;
+      .compact-sub {
+        font-size: 10px;
+        opacity: 0.6;
+        font-family: var(--vscode-editor-font-family);
       }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      @keyframes pulse {
-        0% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
-        100% {
-          opacity: 1;
-        }
-      }
-
-      @keyframes progress {
-        0% {
-          width: 0;
-        }
-        100% {
-          width: 100%;
-        }
-      }
+      .compact-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     </style>
   </head>
   <body>
-    <div class="section">
-      <div class="section-header">
-        <h3>Applications</h3>
-        <button
-          class="refresh-button"
-          id="refresh-button"
-          onclick="refreshData()"
-        >
-          <span>↻ Force Refresh</span>
-        </button>
-      </div>
-      <div id="applications" class="cards-container">
-        <div class="loading">
-          <div class="loading-spinner"></div>
-          Loading applications...
-        </div>
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <span class="toolbar-title">Coolify</span>
+      <div class="toolbar-actions">
+        <button class="toolbar-btn" onclick="refreshAll()" id="refresh-btn" title="Refresh all data">↻ Refresh</button>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-header">
-        <h3>Active Deployments</h3>
+    <!-- Applications Section -->
+    <div class="section" id="section-apps">
+      <div class="section-header" onclick="toggleSection('section-apps')">
+        <h3>📦 Applications <span class="section-count" id="apps-count"></span></h3>
+        <span class="chevron">▼</span>
       </div>
-      <div id="deployments" class="cards-container">
-        <div class="loading">
-          <div class="loading-spinner"></div>
-          Loading deployments...
-        </div>
+      <div class="section-body" id="apps-body">
+        <div class="loading"><div class="spinner"></div> Loading…</div>
+      </div>
+    </div>
+
+    <!-- Servers Section -->
+    <div class="section" id="section-servers">
+      <div class="section-header" onclick="toggleSection('section-servers')">
+        <h3>🖥️ Servers <span class="section-count" id="servers-count"></span></h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body" id="servers-body">
+        <div class="loading"><div class="spinner"></div> Loading…</div>
+      </div>
+    </div>
+
+    <!-- Databases Section -->
+    <div class="section" id="section-dbs">
+      <div class="section-header" onclick="toggleSection('section-dbs')">
+        <h3>🗄️ Databases <span class="section-count" id="dbs-count"></span></h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body" id="dbs-body">
+        <div class="loading"><div class="spinner"></div> Loading…</div>
+      </div>
+    </div>
+
+    <!-- Recent Deployments Section -->
+    <div class="section" id="section-deploys">
+      <div class="section-header" onclick="toggleSection('section-deploys')">
+        <h3>🚀 Recent Deployments <span class="section-count" id="deploys-count"></span></h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body" id="deploys-body">
+        <div class="loading"><div class="spinner"></div> Loading…</div>
       </div>
     </div>
 
     <script>
       const vscode = acquireVsCodeApi();
-      let isRefreshing = false;
 
-      // Restore previous state
-      const previousState = vscode.getState();
-      if (previousState) {
-        updateUI(previousState.applications, previousState.deployments);
+      // ── Section toggle ──────────────────────────
+      function toggleSection(id) {
+        document.getElementById(id).classList.toggle('collapsed');
       }
 
-      function refreshData() {
-        if (isRefreshing) return;
-
-        isRefreshing = true;
-        const indicator = document.getElementById('refresh-indicator');
-        const button = document.getElementById('refresh-button');
-
-        indicator.style.display = 'block';
-        button.classList.add('refreshing');
-        button.disabled = true;
-
+      // ── Actions → postMessage to extension ──────
+      function refreshAll() {
+        const btn = document.getElementById('refresh-btn');
+        btn.textContent = '⟳ Refreshing…';
+        btn.disabled = true;
         vscode.postMessage({ type: 'refresh' });
       }
 
-      function deployApplication(applicationId) {
-        vscode.postMessage({ type: 'deploy', applicationId });
+      function deployApp(uuid)     { vscode.postMessage({ type: 'deploy', applicationId: uuid }); }
+      function startApp(uuid)      { vscode.postMessage({ type: 'startApp', uuid }); }
+      function stopApp(uuid)       { vscode.postMessage({ type: 'stopApp', uuid }); }
+      function restartApp(uuid)    { vscode.postMessage({ type: 'restartApp', uuid }); }
+      function openLogs(uuid, nm)  { vscode.postMessage({ type: 'openLogs', uuid, name: nm }); }
+      function openBrowser(fqdn)   { vscode.postMessage({ type: 'openBrowser', fqdn }); }
+      function startDb(uuid)       { vscode.postMessage({ type: 'startDb', uuid }); }
+      function stopDb(uuid)        { vscode.postMessage({ type: 'stopDb', uuid }); }
+      function backupDb(uuid)      { vscode.postMessage({ type: 'backupDb', uuid }); }
+
+      // ── Helpers ─────────────────────────────────
+      function badgeClass(status) {
+        if (!status) return 'badge-stopped';
+        const s = status.toLowerCase();
+        if (s === 'running') return 'badge-running';
+        if (s === 'deploying' || s === 'starting') return 'badge-deploying';
+        if (s === 'error' || s === 'failed') return 'badge-error';
+        if (s === 'stopped' || s === 'exited') return 'badge-stopped';
+        return 'badge-stopped';
       }
 
-      function formatDate(dateString) {
-        return new Date(dateString).toLocaleString();
+      function ago(dateStr) {
+        if (!dateStr) return '';
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return mins + 'm ago';
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return hrs + 'h ago';
+        return Math.floor(hrs / 24) + 'd ago';
       }
 
+      function esc(s) { return (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+      // ── Render functions ────────────────────────
+      function renderApps(apps) {
+        const el = document.getElementById('apps-body');
+        document.getElementById('apps-count').textContent = '(' + apps.length + ')';
+        if (!apps.length) { el.innerHTML = '<div class="empty">No applications found</div>'; return; }
+
+        el.innerHTML = apps.map(a => {
+          const uuid = esc(a.uuid || a.id);
+          const name = esc(a.name);
+          const status = a.status || 'unknown';
+          const isRunning = status.toLowerCase() === 'running';
+          const isStopped = ['stopped', 'exited'].includes(status.toLowerCase());
+
+          return `<div class="card">
+            <div class="card-top">
+              <span class="card-name" title="${name}">${name}</span>
+              <span class="badge ${badgeClass(status)}">${esc(status)}</span>
+            </div>
+            <div class="card-meta">
+              ${a.fqdn ? `<div class="meta-row"><span class="icon">🌐</span> ${esc(a.fqdn.replace(/https?:\\/\\//, ''))}</div>` : ''}
+              ${a.git_repository ? `<div class="meta-row"><span class="icon">📂</span> ${esc(a.git_branch || 'main')}</div>` : ''}
+              ${a.updated_at ? `<div class="meta-row"><span class="icon">🕐</span> ${ago(a.updated_at)}</div>` : ''}
+            </div>
+            <div class="deploy-row">
+              <button class="deploy-btn" onclick="deployApp('${uuid}')">🚀 Deploy</button>
+            </div>
+            <div class="actions-row">
+              ${isStopped ? `<button class="action-btn success" onclick="startApp('${uuid}')">▶ Start</button>` : ''}
+              ${isRunning ? `<button class="action-btn danger" onclick="stopApp('${uuid}')">⏹ Stop</button>` : ''}
+              ${isRunning ? `<button class="action-btn" onclick="restartApp('${uuid}')">↺ Restart</button>` : ''}
+              <button class="action-btn" onclick="openLogs('${uuid}', '${name}')">📋 Logs</button>
+              ${a.fqdn ? `<button class="action-btn" onclick="openBrowser('${esc(a.fqdn)}')">🌐 Open</button>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      function renderServers(servers) {
+        const el = document.getElementById('servers-body');
+        document.getElementById('servers-count').textContent = '(' + servers.length + ')';
+        if (!servers.length) { el.innerHTML = '<div class="empty">No servers found</div>'; return; }
+
+        el.innerHTML = servers.map(s => {
+          const online = s.settings && s.settings.is_reachable;
+          return `<div class="compact-card">
+            <div class="compact-left">
+              <span class="compact-name">${esc(s.name)}</span>
+              <span class="compact-sub">${esc(s.ip)}${s.user ? ' · ' + esc(s.user) : ''}</span>
+            </div>
+            <div class="compact-right">
+              <span class="badge ${online ? 'badge-online' : 'badge-offline'}">${online ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      function renderDatabases(dbs) {
+        const el = document.getElementById('dbs-body');
+        document.getElementById('dbs-count').textContent = '(' + dbs.length + ')';
+        if (!dbs.length) { el.innerHTML = '<div class="empty">No databases found</div>'; return; }
+
+        el.innerHTML = dbs.map(d => {
+          const uuid = esc(d.uuid || d.id);
+          const status = d.status || 'unknown';
+          const isRunning = status.toLowerCase() === 'running';
+          const isStopped = ['stopped', 'exited'].includes(status.toLowerCase());
+
+          return `<div class="compact-card" style="flex-direction:column;align-items:stretch;gap:6px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="compact-left">
+                <span class="compact-name">${esc(d.name)}</span>
+                <span class="compact-sub">${esc(d.type || 'Database')}</span>
+              </div>
+              <span class="badge ${badgeClass(status)}">${esc(status)}</span>
+            </div>
+            <div class="actions-row" style="padding:0;">
+              ${isStopped ? `<button class="action-btn success" onclick="startDb('${uuid}')">▶ Start</button>` : ''}
+              ${isRunning ? `<button class="action-btn danger" onclick="stopDb('${uuid}')">⏹ Stop</button>` : ''}
+              <button class="action-btn" onclick="backupDb('${uuid}')">💾 Backup</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      function renderDeployments(deploys) {
+        const el = document.getElementById('deploys-body');
+        const recent = (deploys || []).slice(0, 5);
+        document.getElementById('deploys-count').textContent = '(' + recent.length + ')';
+        if (!recent.length) { el.innerHTML = '<div class="empty">No recent deployments</div>'; return; }
+
+        el.innerHTML = recent.map(d => {
+          const status = d.status || 'unknown';
+          return `<div class="deployment-item">
+            <span class="badge ${badgeClass(status)}" style="font-size:9px;">${esc(status)}</span>
+            <div class="deployment-info">
+              <div class="deployment-app">${esc(d.application_name || d.applicationName || 'App')}</div>
+              <div class="deployment-detail">${d.commit ? esc(d.commit.substring(0, 7)) : ''} · ${ago(d.created_at || d.startedAt)}</div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // ── Listen for data from extension ──────────
       window.addEventListener('message', (event) => {
-        const message = event.data;
-        switch (message.type) {
+        const msg = event.data;
+        switch (msg.type) {
           case 'refresh-data':
+            if (msg.applications) renderApps(msg.applications);
+            if (msg.deployments) renderDeployments(msg.deployments);
+            if (msg.servers) renderServers(msg.servers);
+            if (msg.databases) renderDatabases(msg.databases);
+
+            // Save state for restore
             vscode.setState({
-              applications: message.applications,
-              deployments: message.deployments,
+              applications: msg.applications,
+              deployments: msg.deployments,
+              servers: msg.servers,
+              databases: msg.databases
             });
-            updateUI(message.applications, message.deployments);
-            isRefreshing = false;
-            const indicator = document.getElementById('refresh-indicator');
-            const button = document.getElementById('refresh-button');
-            indicator.style.display = 'none';
-            button.classList.remove('refreshing');
-            button.disabled = false;
+
+            // Reset refresh button
+            const btn = document.getElementById('refresh-btn');
+            btn.textContent = '↻ Refresh';
+            btn.disabled = false;
             break;
+
           case 'deployment-status':
-            if (message.status === 'failed') {
-              deployingApps.delete(message.applicationId);
-              updateDeployButton(message.applicationId, false);
-            }
             break;
         }
       });
 
-      function updateUI(applications, deployments) {
-        if (!applications || !deployments) return;
-
-        // Update Applications
-        const appsContainer = document.getElementById('applications');
-        if (applications.length === 0) {
-          appsContainer.innerHTML =
-            '<div class="empty">No applications found</div>';
-        } else {
-          appsContainer.innerHTML = applications
-            .map(
-              (app) => `
-                    <div class="card">
-                        <div class="card-main">
-                            <div class="card-title">${app.name}</div>
-                            <div class="card-subtitle">${
-                              app.fqdn || 'No URL configured'
-                            }</div>
-                            <div class="card-content">
-                                <span class="label">Repository:</span>
-                                <span class="value">${
-                                  app.git_repository || 'N/A'
-                                }</span>
-                                <span class="label">Branch:</span>
-                                <span class="value">${
-                                  app.git_branch || 'N/A'
-                                }</span>
-                                <span class="label">Last Updated:</span>
-                                <span class="value">${formatDate(
-                                  app.updated_at
-                                )}</span>
-                            </div>
-                        </div>
-                        <div class="card-footer">
-                            <span class="status">${app.status}</span>
-                            <button class="deploy-button" onclick="deployApplication('${
-                              app.id
-                            }')">
-                                Deploy
-                            </button>
-                        </div>
-                    </div>
-                `
-            )
-            .join('');
-        }
-
-        // Update Deployments
-        const deploymentsContainer = document.getElementById('deployments');
-        if (deployments.length === 0) {
-          deploymentsContainer.innerHTML =
-            '<div class="empty">No active deployments</div>';
-        } else {
-          deploymentsContainer.innerHTML = deployments
-            .map(
-              (deployment) => `
-                    <div class="card deployment-card">
-                        <div class="card-main">
-                            <div class="card-title">${deployment.applicationName}</div>
-                            <div class="deployment-time">Started ${deployment.startedAt}</div>
-                            <div class="commit-message">${deployment.commit}</div>
-                        </div>
-                        <div class="card-footer">
-                            <span class="status deployment-status">${deployment.status}</span>
-                        </div>
-                    </div>
-                `
-            )
-            .join('');
-        }
+      // ── Restore state if panel was hidden ───────
+      const prev = vscode.getState();
+      if (prev) {
+        if (prev.applications) renderApps(prev.applications);
+        if (prev.deployments) renderDeployments(prev.deployments);
+        if (prev.servers) renderServers(prev.servers);
+        if (prev.databases) renderDatabases(prev.databases);
       }
     </script>
   </body>

@@ -111,12 +111,14 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
         }
 
         const service = new CoolifyService(serverUrl, token);
-        const [applications, deployments] = await Promise.all([
+        const [applications, deployments, servers, databases] = await Promise.all([
           service.getApplications(),
           service.getDeployments(),
+          service.getServers().catch(() => []),
+          service.getDatabases().catch(() => []),
         ]);
 
-        await this.updateWebViewState(applications, deployments);
+        await this.updateWebViewState(applications, deployments, servers, databases);
       });
     } catch (error) {
       await this.handleRefreshError(error);
@@ -127,7 +129,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('setContext', 'coolify.isConfigured', false);
   }
 
-  private async updateWebViewState(applications: any[], deployments: any[]): Promise<void> {
+  private async updateWebViewState(applications: any[], deployments: any[], servers: any[] = [], databases: any[] = []): Promise<void> {
     if (!this.isViewValid()) return;
 
     const uiApplications = this.mapApplicationsToUI(applications);
@@ -137,12 +139,15 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
       type: 'refresh-data',
       applications: uiApplications,
       deployments: uiDeployments,
-    } as WebViewOutgoingMessage);
+      servers: servers,
+      databases: databases,
+    });
   }
 
   private mapApplicationsToUI(applications: any[]): Application[] {
     return applications.map((app) => ({
       id: app.uuid,
+      uuid: app.uuid,
       name: app.name,
       status: app.status,
       fqdn: app.fqdn,
@@ -242,7 +247,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
 
   private setupMessageHandler(webviewView: vscode.WebviewView): void {
     this.messageHandler = webviewView.webview.onDidReceiveMessage(
-      async (data: WebViewMessage) => {
+      async (data: any) => {
         if (!this.isViewValid()) return;
 
         try {
@@ -253,6 +258,46 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
             case 'deploy':
               if (data.applicationId) {
                 await this.deployApplication(data.applicationId);
+              }
+              break;
+            case 'startApp':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.startApplication', data.uuid);
+              }
+              break;
+            case 'stopApp':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.stopApplication', data.uuid);
+              }
+              break;
+            case 'restartApp':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.restartApplication', data.uuid);
+              }
+              break;
+            case 'openLogs':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.viewApplicationLogs', data.uuid, data.name);
+              }
+              break;
+            case 'openBrowser':
+              if (data.fqdn) {
+                await vscode.env.openExternal(vscode.Uri.parse(data.fqdn));
+              }
+              break;
+            case 'startDb':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.startDatabase', data.uuid);
+              }
+              break;
+            case 'stopDb':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.stopDatabase', data.uuid);
+              }
+              break;
+            case 'backupDb':
+              if (data.uuid) {
+                await vscode.commands.executeCommand('coolify.createDatabaseBackup', data.uuid);
               }
               break;
             case 'configure':
