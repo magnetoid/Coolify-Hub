@@ -7,15 +7,15 @@ import { CoolifyService } from '../services/CoolifyService';
  * Option 3: VS Code URI Handler
  * 
  * Handles deep links of the form:
- *   vscode://ImbaMarketing.vscode-coolify/auth?token=sk-xxx&url=https%3A%2F%2Fcoolify.example.com
+ *   vscode://magnetoid.vscode-coolify/auth?token=sk-xxx&url=https%3A%2F%2Fcoolify.example.com
  * 
  * Usage on a Coolify-connected web page (or a custom Coolify plugin):
- *   <a href="vscode://ImbaMarketing.vscode-coolify/auth?token=TOKEN&url=SERVER_URL">
+ *   <a href="vscode://magnetoid.vscode-coolify/auth?token=TOKEN&url=SERVER_URL">
  *     Open in VS Code
  *   </a>
  * 
  * To test manually in browser address bar:
- *   vscode://ImbaMarketing.vscode-coolify/auth?token=your-token&url=https://your-coolify-server.com
+ *   vscode://magnetoid.vscode-coolify/auth?token=your-token&url=https://your-coolify-server.com
  */
 export class CoolifyUriHandler implements vscode.UriHandler {
     constructor(

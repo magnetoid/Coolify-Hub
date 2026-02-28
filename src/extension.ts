@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(authProvider);
 
   // ─── URI Handler (Option 3) ───────────────────────────────────────────────
-  // Handles: vscode://ImbaMarketing.vscode-coolify/auth?token=XXX&url=YYY
+  // Handles: vscode://magnetoid.vscode-coolify/auth?token=XXX&url=YYY
   const uriHandler = new CoolifyUriHandler(
     authProvider,
     configManager,

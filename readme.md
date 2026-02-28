@@ -142,7 +142,7 @@ Coolify appears in the native **Accounts** panel (⚙ bottom-left → Accounts),
 Anyone can open a link like:
 
 ```
-vscode://ImbaMarketing.vscode-coolify/auth?token=TOKEN&url=https://your-coolify-server.com
+vscode://magnetoid.vscode-coolify/auth?token=TOKEN&url=https://your-coolify-server.com
 ```
 
 VS Code intercepts it, validates the token against the server, stores it securely, and opens the sidebar. You can put this link in a Slack message, a wiki, a readme, or a button on a web page.
