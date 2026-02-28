@@ -179,6 +179,16 @@
           "command": "coolify.createDatabaseBackup",
           "when": "view == coolify-deployments && viewItem =~ /^coolifyDatabase_/",
           "group": "inline@1"
+        },
+        {
+          "command": "coolify.openInBrowser",
+          "when": "view == coolify-deployments && viewItem =~ /^coolifyApp_/",
+          "group": "coolify@5"
+        },
+        {
+          "command": "coolify.copyUuid",
+          "when": "view == coolify-deployments && (viewItem =~ /^coolifyApp_/ || viewItem =~ /^coolifyDatabase_/)",
+          "group": "coolify@6"
         }
       ]
     },
@@ -241,6 +251,29 @@
         "title": "Coolify: Create Database Backup",
         "icon": "$(save)",
         "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.openInBrowser",
+        "title": "Coolify: Open in Browser",
+        "icon": "$(link-external)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.copyUuid",
+        "title": "Coolify: Copy UUID",
+        "icon": "$(clippy)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.quickDeploy",
+        "title": "Coolify: Quick Deploy",
+        "icon": "$(zap)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.testConnection",
+        "title": "Coolify: Test Connection",
+        "icon": "$(plug)"
       }
     ]
   },

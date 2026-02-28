@@ -185,4 +185,11 @@ export class CoolifyService {
       clearTimeout(timeout);
     }
   }
+
+  async getVersion(): Promise<string> {
+    const data = await this.fetchWithAuth<{ version?: string } | string>('/api/v1/version');
+    if (typeof data === 'string') { return data; }
+    return (data as { version?: string }).version ?? 'unknown';
+  }
 }
+

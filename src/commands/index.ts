@@ -7,6 +7,8 @@ import { configureCommand, reconfigureCommand } from './configure';
 import { startDeploymentCommand, cancelDeploymentCommand } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { viewApplicationLogsCommand, createDatabaseBackupCommand } from './logs';
+import { openInBrowserCommand, copyUuidCommand, quickDeployCommand, testConnectionCommand } from './browser';
+import { registerGitPushAdvisor } from './gitAdvisor';
 
 export function registerCommands(
     context: vscode.ExtensionContext,
@@ -82,6 +84,26 @@ export function registerCommands(
         }
         return createDatabaseBackupCommand(configManager);
     });
+
+    // ─── Browser / Utility ──────────────────────────────────────────────────────
+    register('coolify.openInBrowser', (item?: CoolifyTreeItem) =>
+        openInBrowserCommand(configManager, treeDataProvider, item)
+    );
+
+    register('coolify.copyUuid', (item?: CoolifyTreeItem) =>
+        copyUuidCommand(treeDataProvider, item)
+    );
+
+    register('coolify.quickDeploy', () =>
+        quickDeployCommand(configManager, treeDataProvider)
+    );
+
+    register('coolify.testConnection', () =>
+        testConnectionCommand(configManager)
+    );
+
+    // ─── Git Advisor ─────────────────────────────────────────────────────────────
+    registerGitPushAdvisor(context, configManager, treeDataProvider);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
