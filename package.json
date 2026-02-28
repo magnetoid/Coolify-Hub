@@ -70,7 +70,8 @@
         {
           "id": "coolify-deployments",
           "name": "Coolify",
-          "type": "tree"
+          "type": "tree",
+          "icon": "public/logo.svg"
         }
       ]
     },

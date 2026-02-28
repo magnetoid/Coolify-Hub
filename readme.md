@@ -105,7 +105,7 @@ pnpm install
 # 3. Package into a .vsix file
 pnpm add -g @vscode/vsce
 vsce package --no-dependencies
-# → creates  vscode-coolify-2.0.0.vsix
+# → creates  vscode-coolify-2.1.0.vsix
 ```
 
 Then install the generated `.vsix` file using **Method 2** below.
@@ -128,7 +128,7 @@ Cmd/Ctrl+Shift+P  →  Extensions: Install from VSIX…  →  select the file
 **Option B — CLI**:
 
 ```bash
-code --install-extension vscode-coolify-2.0.0.vsix
+code --install-extension vscode-coolify-2.1.0.vsix
 ```
 
 </details>
@@ -164,17 +164,17 @@ windsurf --install-extension vscode-coolify-2.0.0.vsix
 </details>
 
 <details>
-<summary><b>Trae</b></summary>
+<summary><b>Trae (ByteDance)</b></summary>
+
+Trae does not currently provide a CLI `--install-extension` command. Install via the UI:
 
 ```
 Cmd/Ctrl+Shift+P  →  Extensions: Install from VSIX…  →  select the file
 ```
 
-Or from the CLI:
+Or open the Extensions panel (`Ctrl+Shift+X`), click the **⋯ menu** → **Install from VSIX…**
 
-```bash
-trae --install-extension vscode-coolify-2.0.0.vsix
-```
+> The extension is fully compatible — all features including tree view, status bar, and keyboard shortcuts work in Trae.
 
 </details>
 
@@ -198,17 +198,16 @@ codium --install-extension vscode-coolify-2.0.0.vsix
 <details>
 <summary><b>Antigravity</b></summary>
 
-Antigravity is fully VS Code extension-compatible. Use the VSIX method:
+Antigravity is a fully VS Code extension-compatible AI editor. Install via the Command Palette:
 
 ```
 Cmd/Ctrl+Shift+P  →  Extensions: Install from VSIX…  →  select the file
 ```
 
-Or CLI:
+Or from the Extensions sidebar (Ctrl+Shift+X) → **⋯ menu** → **Install from VSIX…**
 
-```bash
-antigravity --install-extension vscode-coolify-2.0.0.vsix
-```
+> **Note:** Antigravity's CLI install flag is not yet documented. If a CLI path becomes available, use the VS Code-style flag:
+> `<antigravity-cli> --install-extension vscode-coolify-2.1.0.vsix`
 
 </details>
 
