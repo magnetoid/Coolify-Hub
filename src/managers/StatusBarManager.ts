@@ -54,7 +54,10 @@ export class StatusBarManager {
                 ? applications.filter((a: Application) => a.id === pinnedAppId || a.uuid === pinnedAppId)
                 : applications.slice(0, 2);
 
-            for (const app of appsToShow) {
+            // Only show apps that have a known, displayable status
+            const validApps = appsToShow.filter((a: Application) => a.status && a.status.toLowerCase() !== 'unknown');
+
+            for (const app of validApps) {
                 const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
                 item.name = `Coolify — ${app.name}`;
 
@@ -82,7 +85,7 @@ export class StatusBarManager {
         switch (status?.toLowerCase()) {
             case 'running': return '$(vm-running)';
             case 'stopped': case 'exited': return '$(vm-outline)';
-            case 'deploying': case 'starting': return '$(sync~spin)';
+            case 'deploying': case 'starting': return '$(loading~spin)';
             case 'error': case 'failed': return '$(error)';
             default: return '$(circle-outline)';
         }

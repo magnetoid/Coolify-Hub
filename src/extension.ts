@@ -101,9 +101,13 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   // ─── Boot ─────────────────────────────────────────────────────────────────
-  updateConfigurationState().then(() => {
+  updateConfigurationState().then(async () => {
     treeDataProvider?.initialize();
-    statusBarManager?.initialize();
+    // Only start the status bar polling if the user is already authenticated
+    const isReady = await configManager.isConfigured();
+    if (isReady) {
+      statusBarManager?.initialize();
+    }
   });
 
   // ─── Listen for settings changes ─────────────────────────────────────────
