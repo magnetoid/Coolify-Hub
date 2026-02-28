@@ -57,7 +57,10 @@ async function performApplicationAction(
                 else if (action === 'stop') { await service.stopApplication(targetId!); }
                 else { await service.restartApplication(targetId!); }
 
-                vscode.window.showInformationMessage(`✅ Successfully ${action}ed ${targetName}`);
+                const enableNotifications = vscode.workspace.getConfiguration('coolify').get<boolean>('enableNotifications', true);
+                if (enableNotifications) {
+                    vscode.window.showInformationMessage(`✅ Successfully ${action}ed ${targetName}`);
+                }
             }
         );
     } catch (error) {

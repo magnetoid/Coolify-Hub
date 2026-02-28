@@ -6,6 +6,7 @@ import { Application } from '../types';
 import { configureCommand, reconfigureCommand } from './configure';
 import { startDeploymentCommand, cancelDeploymentCommand } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
+import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
 import { viewApplicationLogsCommand, createDatabaseBackupCommand } from './logs';
 import { openInBrowserCommand, copyUuidCommand, quickDeployCommand, testConnectionCommand } from './browser';
 import { registerGitPushAdvisor } from './gitAdvisor';
@@ -29,57 +30,95 @@ export function registerCommands(
         vscode.window.showInformationMessage('Coolify: Refreshed');
     });
 
-    // ─── Application Actions (Command Palette + TreeView context) ───────────────
-    register('coolify.startDeployment', (item?: CoolifyTreeItem) => {
-        if (item?.kind === 'application' && item.rawData) {
-            const app = item.rawData as Application;
+    // ─── Application Actions (Command Palette + TreeView context + AI/API) ───
+
+    // AI Agent Callable API structure: vscode.commands.executeCommand('coolify.action', 'target-uuid', 'target-name')
+
+    register('coolify.startDeployment', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            // Invoked by AI / API
+            return _deployAppById(configManager, itemOrUuid);
+        } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
+            // Invoked via TreeView menu
+            const app = itemOrUuid.rawData as Application;
             return _deployAppById(configManager, app.id || app.uuid || '');
         }
+        // Invoked via Command Palette
         return startDeploymentCommandWrapper(configManager, treeDataProvider);
     });
 
     register('coolify.cancelDeployment', () => cancelDeploymentCommand(configManager));
 
-    register('coolify.startApplication', (item?: CoolifyTreeItem) => {
-        if (item?.kind === 'application' && item.rawData) {
-            const app = item.rawData as Application;
+    register('coolify.startApplication', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return _appAction(configManager, itemOrUuid, name || 'Application', 'start');
+        } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
             return _appAction(configManager, app.id || app.uuid || '', app.name, 'start');
         }
         return startApplicationCommand(undefined, configManager);
     });
 
-    register('coolify.stopApplication', (item?: CoolifyTreeItem) => {
-        if (item?.kind === 'application' && item.rawData) {
-            const app = item.rawData as Application;
+    register('coolify.stopApplication', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return _appAction(configManager, itemOrUuid, name || 'Application', 'stop');
+        } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
             return _appAction(configManager, app.id || app.uuid || '', app.name, 'stop');
         }
         return stopApplicationCommand(undefined, configManager);
     });
 
-    register('coolify.restartApplication', (item?: CoolifyTreeItem) => {
-        if (item?.kind === 'application' && item.rawData) {
-            const app = item.rawData as Application;
+    register('coolify.restartApplication', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return _appAction(configManager, itemOrUuid, name || 'Application', 'restart');
+        } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
             return _appAction(configManager, app.id || app.uuid || '', app.name, 'restart');
         }
         return restartApplicationCommand(undefined, configManager);
     });
 
     // ─── Logs ───────────────────────────────────────────────────────────────────
-    register('coolify.viewApplicationLogs', (item?: CoolifyTreeItem | { id: string; name: string }) => {
-        if (item && 'kind' in item && item.kind === 'application' && item.rawData) {
-            const app = item.rawData as Application;
+    register('coolify.viewApplicationLogs', (itemOrUuid?: CoolifyTreeItem | { id: string; name: string } | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            // Invoked by AI / API
+            return viewApplicationLogsCommand(configManager, { id: itemOrUuid, name: name || 'Application' });
+        } else if (itemOrUuid && 'kind' in itemOrUuid && itemOrUuid.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
             return viewApplicationLogsCommand(configManager, { id: app.id || app.uuid || '', name: app.name });
-        }
-        if (item && 'id' in item) {
-            return viewApplicationLogsCommand(configManager, item as { id: string; name: string });
+        } else if (itemOrUuid && typeof itemOrUuid === 'object' && 'id' in itemOrUuid) {
+            return viewApplicationLogsCommand(configManager, itemOrUuid as { id: string; name: string });
         }
         return viewApplicationLogsCommand(configManager);
     });
 
     // ─── Databases ──────────────────────────────────────────────────────────────
-    register('coolify.createDatabaseBackup', (item?: CoolifyTreeItem) => {
-        if (item?.kind === 'database' && item.rawData) {
-            const db = item.rawData as import('../types').Database;
+    register('coolify.startDatabase', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return startDatabaseCommand(undefined, configManager, itemOrUuid, name);
+        } else if (itemOrUuid?.kind === 'database' && itemOrUuid.rawData) {
+            const db = itemOrUuid.rawData as import('../types').Database;
+            return startDatabaseCommand(undefined, configManager, db.uuid, db.name);
+        }
+        return startDatabaseCommand(undefined, configManager);
+    });
+
+    register('coolify.stopDatabase', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return stopDatabaseCommand(undefined, configManager, itemOrUuid, name);
+        } else if (itemOrUuid?.kind === 'database' && itemOrUuid.rawData) {
+            const db = itemOrUuid.rawData as import('../types').Database;
+            return stopDatabaseCommand(undefined, configManager, db.uuid, db.name);
+        }
+        return stopDatabaseCommand(undefined, configManager);
+    });
+
+    register('coolify.createDatabaseBackup', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return createDatabaseBackupCommand(configManager, { id: itemOrUuid, name: name || 'Database' });
+        } else if (itemOrUuid?.kind === 'database' && itemOrUuid.rawData) {
+            const db = itemOrUuid.rawData as import('../types').Database;
             return createDatabaseBackupCommand(configManager, { id: db.uuid, name: db.name });
         }
         return createDatabaseBackupCommand(configManager);
@@ -165,7 +204,11 @@ async function _appAction(
             if (action === 'start') { await service.startApplication(uuid); }
             else if (action === 'stop') { await service.stopApplication(uuid); }
             else { await service.restartApplication(uuid); }
-            vscode.window.showInformationMessage(`✅ ${name} ${action}ed`);
+
+            const enableNotifications = vscode.workspace.getConfiguration('coolify').get<boolean>('enableNotifications', true);
+            if (enableNotifications) {
+                vscode.window.showInformationMessage(`✅ ${name} ${action}ed`);
+            }
         }
     );
 }

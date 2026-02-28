@@ -205,7 +205,8 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
         // Root level
         if (!element) {
             return [
-                new CoolifyTreeItem('Applications', vscode.TreeItemCollapsibleState.Expanded, 'category'),
+                new CoolifyTreeItem('Projects', vscode.TreeItemCollapsibleState.Expanded, 'category'),
+                new CoolifyTreeItem('Applications', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
                 new CoolifyTreeItem('Servers', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
                 new CoolifyTreeItem('Databases', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
             ];
@@ -258,6 +259,19 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
 
     private getCategoryChildren(label: string): CoolifyTreeItem[] {
         switch (label) {
+            case 'Projects':
+                if (this.cachedProjects.length === 0) {
+                    return [new CoolifyTreeItem('No projects found', vscode.TreeItemCollapsibleState.None, 'empty')];
+                }
+                return this.cachedProjects.map(proj =>
+                    new CoolifyTreeItem(
+                        proj.name,
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        'project',
+                        proj
+                    )
+                );
+
             case 'Applications':
                 if (this.cachedApplications.length === 0) {
                     return [new CoolifyTreeItem('No applications found', vscode.TreeItemCollapsibleState.None, 'empty')];

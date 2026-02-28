@@ -2,7 +2,7 @@
   "name": "vscode-coolify",
   "displayName": "Coolify Deployments",
   "description": "Deploy, manage, and monitor Coolify applications, databases, and servers. Works in VS Code, Cursor, Trae, Windsurf, VSCodium, and any Open VSX-compatible editor.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "author": {
     "name": "Marko Tiosavljevic",
     "url": "https://imbamarketing.com"
@@ -183,9 +183,19 @@
           "group": "coolify@4"
         },
         {
+          "command": "coolify.startDatabase",
+          "when": "view == coolify-deployments && viewItem == coolifyDatabase_stopped",
+          "group": "inline@1"
+        },
+        {
+          "command": "coolify.stopDatabase",
+          "when": "view == coolify-deployments && viewItem == coolifyDatabase_running",
+          "group": "inline@2"
+        },
+        {
           "command": "coolify.createDatabaseBackup",
           "when": "view == coolify-deployments && viewItem =~ /^coolifyDatabase_/",
-          "group": "inline@1"
+          "group": "inline@3"
         },
         {
           "command": "coolify.openInBrowser",
@@ -251,6 +261,18 @@
         "command": "coolify.viewApplicationLogs",
         "title": "Coolify: View Application Logs",
         "icon": "$(output)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.startDatabase",
+        "title": "Coolify: Start Database",
+        "icon": "$(play)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.stopDatabase",
+        "title": "Coolify: Stop Database",
+        "icon": "$(debug-stop)",
         "enablement": "coolify.isConfigured"
       },
       {
