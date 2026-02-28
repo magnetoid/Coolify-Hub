@@ -193,13 +193,16 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
 
     async getChildren(element?: CoolifyTreeItem): Promise<CoolifyTreeItem[]> {
         if (!this.isConfigured) {
-            return [
-                new CoolifyTreeItem(
-                    'Not configured — run Coolify: Configure',
-                    vscode.TreeItemCollapsibleState.None,
-                    'empty'
-                ),
-            ];
+            const loginItem = new CoolifyTreeItem(
+                'Not signed in — click to connect',
+                vscode.TreeItemCollapsibleState.None,
+                'empty'
+            );
+            loginItem.command = {
+                command: 'coolify.login',
+                title: 'Sign In'
+            };
+            return [loginItem];
         }
 
         // Root level

@@ -256,10 +256,10 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
               }
               break;
             case 'configure':
-              await vscode.commands.executeCommand('coolify.configure');
+              await vscode.commands.executeCommand('coolify.login');
               break;
             case 'reconfigure':
-              await vscode.commands.executeCommand('coolify.reconfigure');
+              await vscode.commands.executeCommand('coolify.logout');
               break;
           }
         } catch (error) {

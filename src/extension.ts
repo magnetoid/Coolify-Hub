@@ -56,11 +56,11 @@ export function activate(context: vscode.ExtensionContext) {
             : editor.isVSCodium ? 'VSCodium'
               : 'VS Code';
     vscode.window.showInformationMessage(
-      `👋 Coolify Deployments is ready in ${editorLabel}! Run "Coolify: Configure" to connect to your server.`,
-      'Configure Now', 'Dismiss'
+      `👋 Coolify Deployments is ready in ${editorLabel}! Sign in via the Accounts menu to get started.`,
+      'Sign In', 'Dismiss'
     ).then(action => {
-      if (action === 'Configure Now') {
-        vscode.commands.executeCommand('coolify.configure');
+      if (action === 'Sign In') {
+        vscode.commands.executeCommand('coolify.login');
       }
     });
     context.globalState.update(greetingKey, true);

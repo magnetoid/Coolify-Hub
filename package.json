@@ -136,14 +136,19 @@
     "menus": {
       "view/title": [
         {
+          "command": "coolify.openDashboard",
+          "when": "view == coolify-deployments && coolify.isConfigured",
+          "group": "navigation@0"
+        },
+        {
           "command": "coolify.refreshApplications",
           "when": "view == coolify-deployments && coolify.isConfigured",
           "group": "navigation@1"
         },
         {
-          "command": "coolify.reconfigure",
-          "when": "view == coolify-deployments && coolify.isConfigured",
-          "group": "navigation@2"
+          "command": "coolify.login",
+          "when": "view == coolify-deployments && !coolify.isConfigured",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -211,15 +216,20 @@
     },
     "commands": [
       {
-        "command": "coolify.configure",
-        "title": "Coolify: Configure",
+        "command": "coolify.openDashboard",
+        "title": "Coolify: Open UI Dashboard",
+        "icon": "$(dashboard)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.login",
+        "title": "Coolify: Sign In",
         "enablement": "!coolify.isConfigured"
       },
       {
-        "command": "coolify.reconfigure",
-        "title": "Coolify: Reconfigure",
-        "enablement": "coolify.isConfigured",
-        "icon": "$(settings-gear)"
+        "command": "coolify.logout",
+        "title": "Coolify: Sign Out",
+        "enablement": "coolify.isConfigured"
       },
       {
         "command": "coolify.refreshApplications",

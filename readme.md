@@ -263,17 +263,15 @@ Antigravity is fully VS Code-extension-compatible. Use the Command Palette or Ex
 
 ### Step 3 — Connect to your Coolify server
 
-```
-Cmd/Ctrl+Shift+P  →  Coolify: Configure
-```
+Click the **Accounts menu** (the ⚙ gear icon in the bottom-left of VS Code) and select **Coolify**.
 
-1. Enter your **server URL** (e.g. `https://coolify.my-server.com` or `http://192.168.1.10:8000`)
-2. The extension verifies the connection — you'll see ✅ when it succeeds
-3. Click **Open Token Page** — your browser opens `/security/api-tokens` on your Coolify dashboard
-4. Create a token, copy it, paste it back into the VS Code prompt
-5. The token is verified and stored securely — **you're connected**
+1. You'll be asked to sign in to Coolify.
+2. Enter your **server URL** (e.g. `https://coolify.my-server.com` or `http://192.168.1.10:8000`)
+3. Your browser will automatically open `/security/api-tokens` on your server.
+4. Create a token, copy it, and paste it back into the VS Code prompt.
+5. The token is verified and securely stored in your OS keychain — **you're connected!**
 
-Your apps, servers, and databases appear in the Coolify sidebar immediately.
+Your apps, servers, and databases will appear in the Coolify sidebar immediately.
 
 ---
 

@@ -3,13 +3,13 @@ import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyTreeDataProvider, CoolifyTreeItem } from '../providers/CoolifyTreeDataProvider';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
-import { configureCommand, reconfigureCommand } from './configure';
 import { startDeploymentCommand, cancelDeploymentCommand } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
 import { viewApplicationLogsCommand, createDatabaseBackupCommand } from './logs';
 import { openInBrowserCommand, copyUuidCommand, quickDeployCommand, testConnectionCommand } from './browser';
 import { registerGitPushAdvisor } from './gitAdvisor';
+import { CoolifyDashboardPanel } from '../panels/CoolifyDashboardPanel';
 
 export function registerCommands(
     context: vscode.ExtensionContext,
@@ -20,14 +20,38 @@ export function registerCommands(
     const register = (id: string, fn: (...args: any[]) => any) =>
         context.subscriptions.push(vscode.commands.registerCommand(id, fn));
 
-    // ─── Configuration ──────────────────────────────────────────────────────────
-    register('coolify.configure', () => configureCommand(configManager, updateConfigurationState));
-    register('coolify.reconfigure', () => reconfigureCommand(configManager, updateConfigurationState));
+    // ─── Authentication ──────────────────────────────────────────────────────────
+    register('coolify.login', async () => {
+        try {
+            await vscode.authentication.getSession('coolify', ['coolify'], { createIfNone: true });
+            await updateConfigurationState();
+            vscode.window.showInformationMessage('🎉 Signed in to Coolify!');
+        } catch (error) {
+            vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Login failed');
+        }
+    });
 
-    // ─── Tree Refresh ───────────────────────────────────────────────────────────
+    register('coolify.logout', async () => {
+        const session = await vscode.authentication.getSession('coolify', ['coolify']);
+        if (session) {
+            // The AuthProvider handles clearing configs when removeSession is called
+            // We just ask VS Code to forget the session.
+            // Note: vscode.authentication API lacks a direct `removeSession`, 
+            // so we do it via the Auth Provider under the hood or config manager.
+            await configManager.clearConfiguration();
+            await updateConfigurationState();
+            vscode.window.showInformationMessage('Signed out of Coolify');
+        }
+    });
+
+    // ─── Tree Refresh & Dashboard ───────────────────────────────────────────────
     register('coolify.refreshApplications', async () => {
         await treeDataProvider.loadData();
         vscode.window.showInformationMessage('Coolify: Refreshed');
+    });
+
+    register('coolify.openDashboard', () => {
+        CoolifyDashboardPanel.createOrShow(context.extensionUri, configManager);
     });
 
     // ─── Application Actions (Command Palette + TreeView context + AI/API) ───
