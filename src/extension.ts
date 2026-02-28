@@ -44,6 +44,27 @@ export function activate(context: vscode.ExtensionContext) {
     });
   }
 
+  // ─── First-run greeting (editor-aware) ────────────────────────────────────
+  const greetingKey = `coolify.greeted.${editor.name}`;
+  if (!context.globalState.get<boolean>(greetingKey)) {
+    const editorLabel = editor.isAntigravity ? 'Antigravity'
+      : editor.isCursor ? 'Cursor'
+        : editor.isTrae ? 'Trae'
+          : editor.isWindsurf ? 'Windsurf'
+            : editor.isVSCodium ? 'VSCodium'
+              : 'VS Code';
+    vscode.window.showInformationMessage(
+      `👋 Coolify Deployments is ready in ${editorLabel}! Run "Coolify: Configure" to connect to your server.`,
+      'Configure Now', 'Dismiss'
+    ).then(action => {
+      if (action === 'Configure Now') {
+        vscode.commands.executeCommand('coolify.configure');
+      }
+    });
+    context.globalState.update(greetingKey, true);
+  }
+
+
   // ─── Core managers ────────────────────────────────────────────────────────
   const configManager = new ConfigurationManager(context);
 
