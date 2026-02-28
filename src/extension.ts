@@ -3,6 +3,8 @@ import { ConfigurationManager } from './managers/ConfigurationManager';
 import { StatusBarManager } from './managers/StatusBarManager';
 import { CoolifyTreeDataProvider } from './providers/CoolifyTreeDataProvider';
 import { registerCommands } from './commands';
+import { CoolifyAuthProvider } from './auth/CoolifyAuthProvider';
+import { CoolifyUriHandler } from './auth/UriHandler';
 
 // ─── Editor Detection ─────────────────────────────────────────────────────────
 // Cursor, Trae, Windsurf, VSCodium, and others all expose their name via
@@ -115,6 +117,19 @@ export function activate(context: vscode.ExtensionContext) {
 
   // ─── Register all commands ────────────────────────────────────────────────
   registerCommands(context, configManager, treeDataProvider, updateConfigurationState);
+
+  // ─── Auth Provider (Option 2) ─────────────────────────────────────────────
+  const authProvider = new CoolifyAuthProvider(context, configManager);
+  context.subscriptions.push(authProvider);
+
+  // ─── URI Handler (Option 3) ───────────────────────────────────────────────
+  // Handles: vscode://ImbaMarketing.vscode-coolify/auth?token=XXX&url=YYY
+  const uriHandler = new CoolifyUriHandler(
+    authProvider,
+    configManager,
+    updateConfigurationState
+  );
+  context.subscriptions.push(vscode.window.registerUriHandler(uriHandler));
 }
 
 export function deactivate() {
