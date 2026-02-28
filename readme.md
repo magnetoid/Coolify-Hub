@@ -6,11 +6,13 @@
 
 ### Deploy, manage & monitor your [Coolify](https://coolify.io) infrastructure — without leaving your editor
 
+> Built by [Marko Tiosavljevic](https://imbamarketing.com) @ [Imba Marketing](https://imbamarketing.com)
+
 <br/>
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Coming%20Soon-grey?style=for-the-badge&logo=visual-studio-code&color=555)](https://github.com/itsnitinr/coolify-vscode-extension)
-[![Open VSX](https://img.shields.io/badge/Open%20VSX-Coming%20Soon-grey?style=for-the-badge&color=555)](https://github.com/itsnitinr/coolify-vscode-extension)
-[![GitHub Release](https://img.shields.io/github/v/release/itsnitinr/coolify-vscode-extension?style=for-the-badge&logo=github&label=Latest%20Release&color=238636)](https://github.com/itsnitinr/coolify-vscode-extension/releases)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Coming%20Soon-grey?style=for-the-badge&logo=visual-studio-code&color=555)](https://github.com/magnetoid/Coolify-Deployments)
+[![Open VSX](https://img.shields.io/badge/Open%20VSX-Coming%20Soon-grey?style=for-the-badge&color=555)](https://github.com/magnetoid/Coolify-Deployments)
+[![GitHub Release](https://img.shields.io/github/v/release/itsnitinr/coolify-vscode-extension?style=for-the-badge&logo=github&label=Latest%20Release&color=238636)](https://github.com/magnetoid/Coolify-Deployments/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -94,7 +96,7 @@ Requires [Node.js 20+](https://nodejs.org) and [pnpm](https://pnpm.io).
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/itsnitinr/coolify-vscode-extension.git
+git clone https://github.com/magnetoid/Coolify-Deployments.git
 cd coolify-vscode-extension
 
 # 2. Install dependencies
@@ -112,7 +114,7 @@ Then install the generated `.vsix` file using **Method 2** below.
 
 ### Method 2 — Install a `.vsix` file
 
-Once you have a `.vsix` file (built above or downloaded from [GitHub Releases](https://github.com/itsnitinr/coolify-vscode-extension/releases)):
+Once you have a `.vsix` file (built above or downloaded from [GitHub Releases](https://github.com/magnetoid/Coolify-Deployments/releases)):
 
 <details open>
 <summary><b>VS Code</b></summary>
@@ -277,12 +279,12 @@ The server URL syncs via Settings Sync. The token is **never synced** — it sta
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or PR on [GitHub](https://github.com/itsnitinr/coolify-vscode-extension).
+Contributions are welcome! Please open an issue or PR on [GitHub](https://github.com/magnetoid/Coolify-Deployments).
 
 ---
 
 <div align="center">
 
-Made with ❤️ by [Nitin Ranganath](https://nitinranganath.com) &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; [Coolify](https://coolify.io)
+Made with ❤️ by [Marko Tiosavljevic](https://imbamarketing.com) &nbsp;·&nbsp; [Imba Marketing](https://imbamarketing.com) &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; [Coolify](https://coolify.io)
 
 </div>

@@ -4,15 +4,14 @@
   "description": "Deploy, manage, and monitor Coolify applications, databases, and servers. Works in VS Code, Cursor, Trae, Windsurf, VSCodium, and any Open VSX-compatible editor.",
   "version": "2.0.0",
   "author": {
-    "name": "Nitin Ranganath",
-    "email": "nitinranganath@gmail.com",
-    "url": "https://nitinranganath.com"
+    "name": "Marko Tiosavljevic",
+    "url": "https://imbamarketing.com"
   },
-  "publisher": "NitinRanganath",
+  "publisher": "ImbaMarketing",
   "icon": "public/logo.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/itsnitinr/coolify-vscode-extension"
+    "url": "https://github.com/magnetoid/Coolify-Deployments"
   },
   "engines": {
     "vscode": "^1.74.0"
