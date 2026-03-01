@@ -2,13 +2,12 @@
 
 <img src="public/logo.png" alt="Coolify Deployments" width="110" />
 
-# Coolify Deployments
+# Coolify Deployments 2.5 🚀
 
-### The missing VS Code extension for [Coolify](https://coolify.io) — deploy, monitor and manage your self-hosted infrastructure without leaving your editor
+### The fully-intelligent VS Code extension for [Coolify](https://coolify.io) — deploy, monitor and manage your self-hosted infrastructure automatically
 
 [![GitHub Release](https://img.shields.io/github/v/release/magnetoid/Coolify-Deployments?style=for-the-badge&logo=github&label=Latest&color=238636)](https://github.com/magnetoid/Coolify-Deployments/releases)
 [![VS Code Marketplace](https://img.shields.io/badge/Marketplace-Coming%20Soon-555?style=for-the-badge&logo=visual-studio-code)](https://github.com/magnetoid/Coolify-Deployments)
-[![Open VSX](https://img.shields.io/badge/Open%20VSX-Coming%20Soon-555?style=for-the-badge)](https://github.com/magnetoid/Coolify-Deployments)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 **Works in** &nbsp;
@@ -23,304 +22,78 @@
 
 ---
 
-## What is this?
+## ⚡ What makes this extension special?
 
-[Coolify](https://coolify.io) is an open-source, self-hosted alternative to Heroku / Netlify / Vercel. It lets you run apps, databases, and services on your own servers with full control.
+**Coolify Deployments** is not just an API wrapper—it's an intelligent workspace assistant that completely removes the friction between writing code and deploying it to your [Coolify](https://coolify.io) infrastructure.
 
-**Coolify Deployments** brings the full Coolify experience into your editor's sidebar. Instead of switching browser tabs every time you want to deploy, check a log, or restart a service — you do it all from within VS Code (or any compatible editor) with a click or a keyboard shortcut.
+### ✨ Zero-Config Workspace Linking
 
-**No browser switching. No copy-pasting UUIDs. No context loss.**
+The moment you open a project folder, the extension **reads your local Git remote URL and instantly links the workspace to your Coolify application**.
 
----
+- **Smart Status Bar:** Shows the real-time status of the *exact app you're working on* right in the bottom bar (`🚀 Coolify: Running`). No pinning required.
+- **1-Click Deploy (`Cmd+Shift+Alt+D`):** Instantly deploys the currently active project without ever popping up a menu asking you what app to deploy.
 
-## What it does
+### 🧠 Intelligent Pre-Flight Checks
 
-### 🌳 Live Sidebar — Your infrastructure at a glance
+Never wonder why a deployment failed or didn't show your latest changes again:
 
-A native TreeView in the sidebar displays your entire Coolify workspace in real time, auto-refreshing every few seconds:
+1. **Uncommitted Changes Warning:** Before pushing, it explicitly warns you if you have uncommitted files.
+2. **Branch Mismatch Protection:** Prevents you from pushing local `main` when Coolify is expecting `production`.
 
-```
-COOLIFY DEPLOYMENTS
-│
-├── 📁 Projects
-│   └── My SaaS App
-│       └── Production
-│           ├── 🟢 api        running     [🚀 ↺ 📋]
-│           └── 🟢 frontend   running     [🚀 ↺ 📋]
-│
-├── 📦 Applications (All)
-│   ├── 🔴 marketing-site     stopped     [▶ 📋]
-│   └── 🟡 analytics-worker   deploying…  [✖]
-│
-├── 🖥️  Servers
-│   ├── hetzner-prod-01   192.168.1.10   online
-│   └── hetzner-backup    192.168.2.14   online
-│
-└── 🗄️  Databases
-    ├── pg-production   PostgreSQL 15   [▶ ⏹ 💾]
-    └── redis-cache     Redis 7         [▶ ⏹ 💾]
-```
+### 🔄 End-to-End Pipeline (No Context Switching)
 
-Browse by **Project ➡️ Environment ➡️ Application** or see a flat list of all your apps. Status icons update automatically — no manual refresh needed.
+Click **Deploy Current Project** and watch the magic:
+
+1. Performs `git push origin HEAD` and streams the console output.
+2. Waits until Coolify receives and verifies the specific Git Commit SHA.
+3. Triggers the deployment.
+4. Opens an Output Channel streaming the **live Docker build logs**.
+5. Upon success, seamlessly transitions into tailing your **live application runtime logs**.
 
 ---
 
-### 🎨 Sidebar Webview Panel — Premium control center
+## 🎛️ Control Center & UI
 
-Open the Coolify sidebar to reveal a **rich, card-based control panel** with 4 collapsible sections:
+### 🌳 Live Sidebar
 
-| Section | What you see |
-|---------|-------------|
-| 🟢 **Connection** | A live "Connected / Disconnected" badge at the very top of the extension indicating API health. |
-| 📦 **Applications** | App cards with status badge, branch, URL, **Vercel-style Deploy button**, and inline actions (Start · Stop · Restart · Logs · Open in Browser) |
-| 🖥️ **Servers** | Server name, IP address, Online/Offline badge |
-| 🗄️ **Databases** | DB name, type, status, Start/Stop/Backup buttons |
-| 🚀 **Recent Deployments** | Last 5 deploys with commit, status (pulsing if active), and timestamp |
+Browse your complete Coolify hierarchy (Projects ➡️ Environments ➡️ Applications, Servers, Databases) in a native TreeView that auto-refreshes in the background.
 
-**Deploy button** — Every application card features a prominent, full-width blue deploy button inspired by Vercel. One click triggers a deployment. Works in **VS Code**, **Trae**, **Cursor**, **Windsurf**, and all compatible editors.
+### 🎨 Sidebar Webview Dashboard
 
----
-
-### ⚡ One-click & keyboard actions
-
-Right-click any item in the tree for a context menu. Inline action buttons appear next to each app. Everything is also available from the Command Palette (`Cmd/Ctrl+Shift+P → Coolify:`).
-
-| Action | Keyboard (Mac / PC) | Where |
-|---|---|---|
-| 🚀 Deploy application | `⌘⇧D` / `Ctrl+Shift+D` | Tree button, palette, QuickPick, Sidebar Webview |
-| 📋 View live logs | `⌘⇧L` / `Ctrl+Shift+L` | Tree button, palette, Sidebar Webview |
-| 🔄 Refresh sidebar | `⌘⇧R` / `Ctrl+Shift+R` | Tree toolbar, palette |
-| ✖ Cancel deployment | `⌘⇧X` / `Ctrl+Shift+X` | Context menu, palette |
-| ▶ Start application/DB | — | Context menu |
-| ⏹ Stop application/DB | — | Context menu |
-| ↺ Restart application | — | Context menu |
-| 💾 Database backup | — | Context menu |
-| 🌐 Open in browser | — | Context menu |
-| 📋 Copy UUID | — | Context menu |
-
----
-
-### 🚀 Auto-Push & Live Deployment Tracking
-
-When you click **Deploy** on any application, the extension completely removes the friction of deploying context:
-
-1. **Auto Git Push**: It automatically runs `git push origin HEAD` in your active VS Code workspace so your latest code is sent upstream before deploying.
-2. **One-Click Deploy**: The extension instantly triggers the deployment webhook on Coolify.
-3. **Live Log Streaming**: The extension pops open a native VS Code Output Channel (named `Coolify Build Logs`) and streams the Docker build logs _in real-time_ so you know exactly what is happening during the deployment. No more wondering if a build is successful!
-
----
-
-### ⚡ Quick Deploy — type-to-search across all apps
-
-Run `Coolify: Quick Deploy` from the palette. A searchable list of all your apps appears with their live status. Select one → deployment flow starts immediately. After it begins, the **Live Logs** open automatically inside VS Code.
-
----
-
-### 📊 Status Bar Monitor — always visible
-
-A persistent status indicator in the editor's bottom bar shows the state of your application. Click it to open the log stream.
-
-**🧠 Intelligent Workspace Auto-Detection:**
-The extension automatically inspects the `.git/config` of your active VS Code workspace. It seamlessly filters applications to **only show** the Coolify application that matches your current local Git origin. This means your Status Bar stays perfectly clean in unrelated projects!
-
-_(Don't use Git? You can still manually pin a specific app via `coolify.defaultApplication` in Settings)._
-
-```
-  🟢 coolify-api: Running   🔴 marketing-site: Stopped
-```
-
----
-
-### 📋 View Application Logs
-
-`Coolify: View Application Logs` opens a dedicated **Coolify Logs** Output Channel and brings up the runtime execution logs from the selected application footprint. No browser needed, no extra tools — just the familiar VS Code output panel.
-
----
+A rich, Vercel-inspired dashboard view showing live health badges, deployment history, and quick-action buttons (Start, Stop, Deploy, Logs).
 
 ### 🔀 Git Push Advisor
 
-When you push or merge to a branch that matches a Coolify application's configured branch (handled via standard Git CLI hooks), the extension detects it automatically and asks:
-
-> _"marketing-site is configured to deploy from `main`. Deploy now?"_
-
-Click **Deploy** — done. No switching context, no opening Coolify, no manual trigger.
+Pushing code manually from the terminal? The extension intercepts it: if you push a branch that matches a linked Coolify application, a non-intrusive popup simply asks: *"marketing-site is configured to deploy from `main`. Deploy now?"*
 
 ---
 
-### 🤖 AI Agent Integration API
+## ⌨️ Keyboard Shortcuts
 
-Using an AI coding agent like **Trae**, **Cursor**, or **Antigravity**? The extension exposes a structured API for AI agents to control your Coolify infrastructure directly!
-
-Every major command accepts an explicit UUID argument, meaning the AI can instantly trigger actions on your behalf without popping open VS Code UI dropdowns:
-
-```typescript
-// Example: an AI agent deploying your app instantly
-vscode.commands.executeCommand('coolify.startDeployment', 'your-app-uuid');
-vscode.commands.executeCommand('coolify.stopDatabase', 'your-db-uuid');
-```
-
----
-
-### 🔐 Two ways to connect to Coolify
-
-**Method 1 — VS Code Accounts menu**
-Coolify appears in the native **Accounts** panel (⚙ bottom-left → Accounts), alongside GitHub and Microsoft. Sign in from there — it opens the browser to the token page, you paste and confirm.
-
-**Method 2 — Deep link (one-click from anywhere)**
-Anyone can open a link like:
-
-```
-vscode://magnetoid.vscode-coolify/auth?token=TOKEN&url=https://your-coolify-server.com
-```
-
-VS Code intercepts it, validates the token against the server, stores it securely, and opens the sidebar. You can put this link in a Slack message, a wiki, a readme, or a button on a web page.
-
----
-
-## How it works under the hood
-
-The extension communicates with your Coolify server through its **REST API v1** using your personal API token as a Bearer credential. Here is the data flow:
-
-```
-VS Code Extension
-       │
-       │  HTTPS (Bearer token)
-       ▼
-Coolify REST API (v1)         ← your server, your data
-  /api/v1/applications
-  /api/v1/projects
-  /api/v1/servers
-  /api/v1/databases
-  /api/v1/deployments
-```
-
-- **No third-party servers.** All calls go directly from your editor to your Coolify instance.
-- **No code execution.** The extension never reads, runs, or modifies any files in your workspace.
-- **No telemetry.** The extension respects VS Code's telemetry opt-out setting.
-- **Polling interval** is configurable (default: every 5 seconds). The sidebar stays current without hammering your server.
-- **Timeouts & retries** are built in. If your server is temporarily unreachable, the extension gracefully degrades — no crashes, no error spam.
+| Action | Keyboard (Mac / PC) | Where |
+|---|---|---|
+| 🚀 Deploy Current Project | `⌘⇧⌥D` / `Ctrl+Shift+Alt+D` | Global (when working in linked project) |
+| 🚀 Deploy Any | `⌘⇧D` / `Ctrl+Shift+D` | Command Palette, Sidebar |
+| 📋 View Live Logs | `⌘⇧L` / `Ctrl+Shift+L` | Command Palette, Sidebar |
+| ✖ Cancel Deployment | `⌘⇧X` / `Ctrl+Shift+X` | Command Palette |
 
 ---
 
 ## 🏁 Getting Started
 
-> [!IMPORTANT]
-> The extension is **not yet published** to the VS Code Marketplace or Open VSX.
-> Install manually via `.vsix` — it takes under 2 minutes.
-
 ### Step 1 — Download the `.vsix`
 
-Go to [**Releases**](https://github.com/magnetoid/Coolify-Deployments/releases) and download the latest `vscode-coolify-2.3.8.vsix`.
+Go to [**Releases**](https://github.com/magnetoid/Coolify-Deployments/releases) and download the latest `.vsix` file.
 
-Or build it yourself from source (requires Node.js 20+):
+### Step 2 — Install
 
-```bash
-git clone https://github.com/magnetoid/Coolify-Deployments.git
-cd Coolify-Deployments
-pnpm install
-pnpm add -g @vscode/vsce
-vsce package --no-dependencies
-# ↳ generates vscode-coolify-2.3.8.vsix
-```
+In your editor, open the Command Palette (`Cmd/Ctrl+Shift+P`) and type **Extensions: Install from VSIX…**, then select the file you just downloaded.
 
----
+### Step 3 — Connect
 
-### Step 2 — Install the `.vsix`
-
-The process is the same in every supported editor:
-
-```
-Cmd/Ctrl+Shift+P  →  Extensions: Install from VSIX…  →  select the file
-```
-
-Or use the Extensions sidebar (`Ctrl+Shift+X`) → click the **⋯ menu** → **Install from VSIX…**
-
-**Editor-specific CLI commands:**
-
-<details>
-<summary><b>VS Code</b></summary>
-
-```bash
-code --install-extension vscode-coolify-2.3.8.vsix
-```
-
-</details>
-
-<details>
-<summary><b>Cursor</b></summary>
-
-```bash
-cursor --install-extension vscode-coolify-2.3.8.vsix
-```
-
-</details>
-
-<details>
-<summary><b>Windsurf</b></summary>
-
-```bash
-windsurf --install-extension vscode-coolify-2.3.8.vsix
-```
-
-</details>
-
-<details>
-<summary><b>VSCodium</b></summary>
-
-```bash
-codium --install-extension vscode-coolify-2.3.8.vsix
-```
-
-</details>
-
-<details>
-<summary><b>Trae (ByteDance)</b></summary>
-
-Trae does not currently support a CLI `--install-extension` flag. Use the UI method above — all features work fully in Trae.
-
-</details>
-
-<details>
-<summary><b>Antigravity</b></summary>
-
-Antigravity is fully VS Code-extension-compatible. Use the Command Palette or Extensions sidebar method above.
-
-</details>
-
----
-
-### Step 3 — Connect to your Coolify server
-
-Click the **Accounts menu** (the ⚙ gear icon in the bottom-left of VS Code) and select **Coolify**.
-
-1. You'll be asked to sign in to Coolify.
-2. Enter your **server URL** (e.g. `https://coolify.my-server.com` or `http://192.168.1.10:8000`)
-3. Your browser will automatically open `/security/api-tokens` on your server.
-4. Create a token, copy it, and paste it back into the VS Code prompt.
-5. The token is verified and securely stored in your OS keychain — **you're connected!**
-
-Your apps, servers, and databases will appear in the Coolify sidebar immediately.
-
----
-
-### Step 4 — Deploy 🚀
-
-Click the 🚀 button next to any app, or press **`⌘⇧D`** / **`Ctrl+Shift+D`** for the Quick Deploy picker.
-
----
-
-## 👥 Team Setup
-
-Commit a shared server URL so every teammate is pre-connected — they only need to enter their own API token once:
-
-```json
-// .vscode/settings.json  (safe to commit)
-{
-  "coolify.serverUrl": "https://coolify.my-company.internal"
-}
-```
-
-The server URL is synced via VS Code Settings Sync. API tokens are **never synced** — they stay encrypted in each developer's OS keychain.
+1. Click the ⚙ gear icon (bottom-left) → **Accounts** → **Coolify**.
+2. Follow the prompt to enter your server URL (e.g. `https://coolify.my-domain.com`).
+3. Create an API token in the browser window that opens, and paste it back into the editor!
 
 ---
 
@@ -328,93 +101,28 @@ The server URL is synced via VS Code Settings Sync. API tokens are **never synce
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `coolify.serverUrl` | `string` | `""` | Coolify server URL — can also be set in `.vscode/settings.json` |
-| `coolify.refreshInterval` | `number` | `5000` | Sidebar auto-refresh interval in milliseconds (minimum: 2000) |
-| `coolify.defaultApplication` | `string` | `""` | UUID of the app to pin in the Status Bar (leave empty = first app) |
-| `coolify.enableNotifications` | `boolean` | `true` | Toggle "Quiet Mode". If false, deployment and state change toast notifications are silenced. |
+| `coolify.serverUrl` | `string` | `""` | Coolify server URL. Can be set in `.vscode/settings.json` to share with teammates. |
+| `coolify.refreshInterval` | `number` | `5000` | Sidebar auto-refresh interval (ms) |
 
 ---
 
 ## 🔒 Security Model
 
-| Data | Where stored | Synced |
-|---|---|---|
-| Server URL | `globalState` + `settings.json` | ✅ via Settings Sync |
-| API Token | VS Code **SecretStorage** (OS keychain) | ❌ Never |
-
-- Editors without SecretStorage (some VSCodium builds) receive a warning and use a plaintext fallback.
-- The extension only makes **outbound HTTPS** calls to your Coolify server.
-- No workspace files are ever read or executed.
-- No calls to any external analytics, telemetry, or tracking services.
+- **API Tokens** are stored in your OS keychain via the encrypted VS Code SecretStorage API. **They are never synced.**
+- **Local Git repo parsing** happens strictly offline inside the editor.
+- **Zero Telemetry.** This extension performs no outside analytics and respects your privacy.
 
 ---
 
-## 🛠️ Editor Compatibility
+## 👨‍💻 Author & Support
 
-| Editor | Install | SecretStorage | Settings Sync | Remote/SSH |
-|---|---|---|---|---|
-| VS Code | Marketplace _(soon)_ | ✅ Full | ✅ | ✅ |
-| Cursor | `.vsix` | ✅ Full | ✅ | ✅ |
-| Windsurf | `.vsix` | ✅ Full | — | ✅ |
-| Trae | `.vsix` | ✅ Full | — | ✅ |
-| VSCodium | `.vsix` | ⚠️ Fallback | — | ✅ |
-| Antigravity | `.vsix` | ✅ Full | — | ✅ |
+Built by **[Marko Tiosavljevic](https://imbamarketing.com)**, founder of **[Imba Marketing](https://imbamarketing.com)**.
 
-> [!NOTE]
-> **Remote sessions (SSH / Dev Containers / Codespaces):** The extension runs on the remote host. Your Coolify server must be reachable **from the remote machine**, not just from your local laptop.
+If this extension saves you context-switching time, please consider:
 
----
-
-## 👨‍💻 About the Author
-
-This extension is built and maintained by **[Marko Tiosavljevic](https://imbamarketing.com)**, founder of **[Imba Marketing](https://imbamarketing.com)** — a digital agency focused on growth, automation, and developer tooling.
-
-Marko is a self-hosting enthusiast who uses Coolify to run client infrastructure and needed a proper IDE integration. This extension is the result of that itch.
-
-**Find me:**
-
-- 🌐 [imbamarketing.com](https://imbamarketing.com)
-- 💬 [Open an issue or discussion on GitHub](https://github.com/magnetoid/Coolify-Deployments/issues)
-
----
-
-## ❤️ Support this project
-
-This extension is **free and open-source**. If it saves you time, reduces context-switching, or just makes your day a little smoother — consider supporting its continued development.
-
-Every contribution helps fund:
-
-- New features (browser-based auth, environment variable editor, deployment history viewer)
-- Bugfixes and compatibility updates across editors
-- Documentation and onboarding improvements
-
-**Ways to support:**
-
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/magnetoid)
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support-EA4AAA?style=for-the-badge&logo=github-sponsors)](https://github.com/sponsors/magnetoid)
-
-You can also **star the repo** ⭐ — it helps more people discover the extension.
-
-[![Star on GitHub](https://img.shields.io/github/stars/magnetoid/Coolify-Deployments?style=for-the-badge&logo=github&color=238636)](https://github.com/magnetoid/Coolify-Deployments)
-
----
-
-## 🤝 Contributing
-
-Bug reports, feature requests, and pull requests are all very welcome.
-
-- 🐛 [Open an issue](https://github.com/magnetoid/Coolify-Deployments/issues/new)
-- 💡 [Start a discussion](https://github.com/magnetoid/Coolify-Deployments/discussions)
-- 🔀 [Submit a PR](https://github.com/magnetoid/Coolify-Deployments/pulls)
-
-Please check existing issues before opening a new one.
-
----
+- ⭐ **Starring the repo**
+- [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/magnetoid)
 
 <div align="center">
-
 Made with ❤️ by [Marko Tiosavljevic](https://imbamarketing.com) &nbsp;·&nbsp; [Imba Marketing](https://imbamarketing.com) &nbsp;·&nbsp; MIT License
-
-[Coolify.io](https://coolify.io) &nbsp;·&nbsp; [GitHub](https://github.com/magnetoid/Coolify-Deployments) &nbsp;·&nbsp; [Releases](https://github.com/magnetoid/Coolify-Deployments/releases)
-
 </div>
