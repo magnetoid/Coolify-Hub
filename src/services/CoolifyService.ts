@@ -110,8 +110,9 @@ export class CoolifyService {
     return this.fetchWithAuth<Deployment[]>(`/api/v1/applications/${appUuid}/deployments`);
   }
 
-  async startDeployment(uuid: string): Promise<string | undefined> {
-    const data = await this.fetchWithAuth<{ deploy_uuid?: string }>(`/api/v1/deploy?uuid=${uuid}`);
+  async startDeployment(uuid: string, force: boolean = false): Promise<string | undefined> {
+    const forceQuery = force ? '&force=true' : '';
+    const data = await this.fetchWithAuth<{ deploy_uuid?: string }>(`/api/v1/deploy?uuid=${uuid}${forceQuery}`);
     return data.deploy_uuid;
   }
 

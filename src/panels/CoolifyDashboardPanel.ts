@@ -184,10 +184,15 @@ export class CoolifyDashboardPanel {
             const gitHtml = a.git_repository ? `${a.git_repository}@${a.git_branch}` : 'N/A';
             const uuid = a.uuid || a.id;
 
+            const serverInfo = a.server_id ? servers.find(s => s.id === a.server_id || Number(s.id) === a.server_id) : undefined;
+            const serverBadge = serverInfo ? `<span class="badge" title="Running on ${serverInfo.name}" style="background:#374151; font-size:9px; padding:2px 6px; font-weight:normal; margin-left:6px;">☁️ ${serverInfo.name}</span>` : '';
+
             return `
             <div class="card">
                 <div class="card-header">
-                    <h3 title="${a.name}">${safeName}</h3>
+                    <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                        <h3 title="${a.name}">${safeName} ${serverBadge}</h3>
+                    </div>
                     <span class="badge ${badgeClass}">${a.status || 'unknown'}</span>
                 </div>
                 <div class="card-body">

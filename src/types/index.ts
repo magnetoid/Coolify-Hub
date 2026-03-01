@@ -11,6 +11,7 @@ export interface Application {
     destination_type?: string;
     description?: string;
     label?: string;
+    server_id?: number;
 }
 
 export interface Deployment {

@@ -170,6 +170,11 @@
           "group": "inline@1"
         },
         {
+          "command": "coolify.forceDeployment",
+          "when": "view == coolify-deployments && viewItem =~ /^coolifyApp_/",
+          "group": "inline@1.5"
+        },
+        {
           "command": "coolify.restartApplication",
           "when": "view == coolify-deployments && viewItem =~ /^coolifyApp_/",
           "group": "inline@2"
@@ -264,6 +269,12 @@
         "command": "coolify.startDeployment",
         "title": "Coolify: Deploy",
         "icon": "$(rocket)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.forceDeployment",
+        "title": "Coolify: Force Deploy (No Cache)",
+        "icon": "$(flame)",
         "enablement": "coolify.isConfigured"
       },
       {

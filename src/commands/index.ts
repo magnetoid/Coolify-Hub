@@ -4,7 +4,7 @@ import { CoolifyTreeDataProvider, CoolifyTreeItem } from '../providers/CoolifyTr
 import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
 import { StatusBarManager } from '../managers/StatusBarManager';
-import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow, deployCurrentProjectCommand } from './deploy';
+import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow, deployCurrentProjectCommand, forceDeploymentCommand } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
 import { viewApplicationLogsCommand, viewApplicationLogsLiveCommand, createDatabaseBackupCommand } from './logs';
@@ -74,6 +74,16 @@ export function registerCommands(
     });
 
     register('coolify.deployCurrentProject', () => deployCurrentProjectCommand(configManager, statusBarManager));
+
+    register('coolify.forceDeployment', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return runDeploymentFlow(configManager, itemOrUuid, name, true);
+        } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
+            return runDeploymentFlow(configManager, app.uuid || app.id || '', app.name, true);
+        }
+        return forceDeploymentCommand(configManager, treeDataProvider);
+    });
 
     register('coolify.cancelDeployment', () => cancelDeploymentCommand(configManager));
 

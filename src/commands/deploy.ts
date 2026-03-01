@@ -33,10 +33,36 @@ function timestamp(): string {
 
 // ─── Stage 1: Git Push (live streaming) ──────────────────────────────────────
 
-function gitPushLive(workspaceRoot: string, channel: vscode.OutputChannel): Promise<boolean> {
+async function gitPushLive(workspaceRoot: string, channel: vscode.OutputChannel): Promise<boolean> {
+    banner(channel, '🔀  STAGE 1 — Git Push');
+
+    try {
+        channel.appendLine(`[${timestamp()}] Attempting precise push via VS Code Git Extension...`);
+        const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+        const gitApi = gitExtension?.getAPI(1);
+
+        if (gitApi) {
+            // Find the repository matching the workspace root
+            const repo = gitApi.repositories.find((r: any) => r.rootUri.fsPath === workspaceRoot);
+            if (repo) {
+                // The API natively handles auth popups, SSH keys, etc.
+                await repo.push('origin', 'HEAD');
+                channel.appendLine(`[${timestamp()}] ✅ Git push succeeded (via VS Code API).`);
+                return true;
+            } else {
+                channel.appendLine(`[${timestamp()}] ⚠️ Repository not managed by VS Code Git API. Falling back to terminal...`);
+            }
+        } else {
+            channel.appendLine(`[${timestamp()}] ⚠️ Git Extension unavailable. Falling back to terminal...`);
+        }
+    } catch (err) {
+        channel.appendLine(`[${timestamp()}] ❌ VS Code Git push encountered an error: ${err instanceof Error ? err.message : String(err)}`);
+        channel.appendLine(`[${timestamp()}] Falling back to terminal process...`);
+    }
+
+    // ── Fallback exactly to traditional CLI ──
     return new Promise((resolve) => {
-        banner(channel, '🔀  STAGE 1 — Git Push');
-        channel.appendLine(`[${timestamp()}] Running: git push origin HEAD`);
+        channel.appendLine(`[${timestamp()}] Running fallback: git push origin HEAD`);
 
         const proc = spawn('git', ['push', 'origin', 'HEAD'], { cwd: workspaceRoot });
 
@@ -44,7 +70,6 @@ function gitPushLive(workspaceRoot: string, channel: vscode.OutputChannel): Prom
             channel.append(data.toString());
         });
         proc.stderr.on('data', (data: Buffer) => {
-            // Git sends most output (including progress) to stderr
             channel.append(data.toString());
         });
         proc.on('close', (code) => {
@@ -99,13 +124,14 @@ async function deployAndStreamLogs(
     appUuid: string,
     appName: string,
     channel: vscode.OutputChannel,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
+    forceDeploy: boolean = false
 ): Promise<boolean> {
     banner(channel, '🚀  STAGE 3 — Triggering Deployment');
 
     let deployUuid: string | undefined;
     try {
-        deployUuid = await service.startDeployment(appUuid);
+        deployUuid = await service.startDeployment(appUuid, forceDeploy);
     } catch (err) {
         channel.appendLine(`[${timestamp()}] ❌ Failed to start deployment: ${err instanceof Error ? err.message : String(err)}`);
         return false;
@@ -195,7 +221,8 @@ export async function streamAppLogsLive(
 export async function runDeploymentFlow(
     configManager: ConfigurationManager,
     appUuid: string,
-    appName: string = 'Application'
+    appName: string = 'Application',
+    forceDeploy: boolean = false
 ) {
     try {
         const serverUrl = await configManager.getServerUrl();
@@ -301,7 +328,7 @@ export async function runDeploymentFlow(
                 cancellable: true
             },
             async (_progress, cancellationToken) => {
-                const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, channel, cancellationToken);
+                const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, channel, cancellationToken, forceDeploy);
 
                 if (deploySuccess) {
                     await streamAppLogsLive(service, appUuid, appName, channel, cancellationToken);
@@ -425,5 +452,40 @@ export async function cancelDeploymentCommand(
         }
     } catch (error) {
         vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to cancel deployment');
+    }
+}
+
+export async function forceDeploymentCommand(
+    configManager: ConfigurationManager,
+    webviewProvider?: any
+) {
+    try {
+        const serverUrl = await configManager.getServerUrl();
+        const token = await configManager.getToken();
+        if (!serverUrl || !token) { throw new Error('Not configured'); }
+
+        const service = new CoolifyService(serverUrl, token);
+        const applications = await service.getApplications();
+
+        if (!applications || applications.length === 0) {
+            vscode.window.showInformationMessage('No applications found');
+            return;
+        }
+
+        const selected = await vscode.window.showQuickPick(
+            applications.map((app: Application) => ({
+                label: app.name,
+                description: app.status,
+                detail: app.fqdn ? `🌐 ${app.fqdn}` : undefined,
+                id: app.uuid || app.id || '',
+            })),
+            { placeHolder: 'Select an application to FORCE deploy (no cache)', title: 'Coolify: Force Deploy' }
+        );
+
+        if (selected) {
+            await runDeploymentFlow(configManager, selected.id, selected.label, true);
+        }
+    } catch (error) {
+        vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to start force deployment');
     }
 }
