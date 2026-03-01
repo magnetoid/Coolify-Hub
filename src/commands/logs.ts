@@ -77,6 +77,77 @@ export async function viewApplicationLogsCommand(
     }
 }
 
+export async function viewApplicationLogsLiveCommand(
+    configManager: ConfigurationManager,
+    app?: { id: string; name: string }
+) {
+    try {
+        const serverUrl = await configManager.getServerUrl();
+        const token = await configManager.getToken();
+        if (!serverUrl || !token) { throw new Error('Extension not configured properly'); }
+
+        const service = new CoolifyService(serverUrl, token);
+
+        let targetId = app?.id;
+        let targetName = app?.name;
+
+        if (!targetId) {
+            const applications = await service.getApplications();
+            if (!applications || applications.length === 0) {
+                vscode.window.showInformationMessage('No applications found');
+                return;
+            }
+
+            const selected = await vscode.window.showQuickPick(
+                applications.map((a: Application) => ({
+                    label: a.name,
+                    description: a.status,
+                    detail: a.fqdn,
+                    id: a.id || a.uuid || '',
+                })),
+                { placeHolder: 'Select an application to tail logs', title: 'Coolify: Live App Logs' }
+            );
+
+            if (!selected) { return; }
+            targetId = selected.id;
+            targetName = selected.label;
+        }
+
+        const channel = getLogsChannel();
+        channel.clear();
+        channel.show(true);
+        channel.appendLine(`── Coolify Live Logs — ${targetName} ──`);
+        channel.appendLine(`Tailing logs… (cancel the progress notification to stop)`);
+        channel.appendLine('');
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `[Coolify] Live logs: ${targetName}`,
+                cancellable: true,
+            },
+            async (_progress, cancellationToken) => {
+                let lastLength = 0;
+                while (!cancellationToken.isCancellationRequested) {
+                    try {
+                        const logs = await service.getApplicationLogs(targetId!);
+                        if (logs && logs.length > lastLength) {
+                            channel.append(logs.substring(lastLength));
+                            lastLength = logs.length;
+                        }
+                    } catch (e) {
+                        channel.appendLine(`(fetch error: ${e instanceof Error ? e.message : String(e)})`);
+                    }
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+                channel.appendLine(`\n🛑 Live log tail stopped.`);
+            }
+        );
+    } catch (error) {
+        vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to tail logs');
+    }
+}
+
 export async function createDatabaseBackupCommand(
     configManager: ConfigurationManager,
     db?: { id: string; name: string }

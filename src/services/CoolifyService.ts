@@ -84,6 +84,10 @@ export class CoolifyService {
     }
   }
 
+  async getApplication(uuid: string): Promise<Application> {
+    return this.fetchWithAuth<Application>(`/api/v1/applications/${uuid}`);
+  }
+
   async startApplication(uuid: string): Promise<boolean> {
     return this.fetchVoid(`/api/v1/applications/${uuid}/start`);
   }

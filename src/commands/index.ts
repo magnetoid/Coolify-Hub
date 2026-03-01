@@ -6,7 +6,7 @@ import { Application } from '../types';
 import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
-import { viewApplicationLogsCommand, createDatabaseBackupCommand } from './logs';
+import { viewApplicationLogsCommand, viewApplicationLogsLiveCommand, createDatabaseBackupCommand } from './logs';
 import { openInBrowserCommand, copyUuidCommand, quickDeployCommand, testConnectionCommand } from './browser';
 import { registerGitPushAdvisor } from './gitAdvisor';
 import { CoolifyDashboardPanel } from '../panels/CoolifyDashboardPanel';
@@ -106,7 +106,6 @@ export function registerCommands(
     // ─── Logs ───────────────────────────────────────────────────────────────────
     register('coolify.viewApplicationLogs', (itemOrUuid?: CoolifyTreeItem | { id: string; name: string } | string, name?: string) => {
         if (typeof itemOrUuid === 'string') {
-            // Invoked by AI / API
             return viewApplicationLogsCommand(configManager, { id: itemOrUuid, name: name || 'Application' });
         } else if (itemOrUuid && 'kind' in itemOrUuid && itemOrUuid.kind === 'application' && itemOrUuid.rawData) {
             const app = itemOrUuid.rawData as Application;
@@ -115,6 +114,18 @@ export function registerCommands(
             return viewApplicationLogsCommand(configManager, itemOrUuid as { id: string; name: string });
         }
         return viewApplicationLogsCommand(configManager);
+    });
+
+    register('coolify.viewApplicationLogsLive', (itemOrUuid?: CoolifyTreeItem | { id: string; name: string } | string, name?: string) => {
+        if (typeof itemOrUuid === 'string') {
+            return viewApplicationLogsLiveCommand(configManager, { id: itemOrUuid, name: name || 'Application' });
+        } else if (itemOrUuid && 'kind' in itemOrUuid && itemOrUuid.kind === 'application' && itemOrUuid.rawData) {
+            const app = itemOrUuid.rawData as Application;
+            return viewApplicationLogsLiveCommand(configManager, { id: app.id || app.uuid || '', name: app.name });
+        } else if (itemOrUuid && typeof itemOrUuid === 'object' && 'id' in itemOrUuid) {
+            return viewApplicationLogsLiveCommand(configManager, itemOrUuid as { id: string; name: string });
+        }
+        return viewApplicationLogsLiveCommand(configManager);
     });
 
     // ─── Databases ──────────────────────────────────────────────────────────────

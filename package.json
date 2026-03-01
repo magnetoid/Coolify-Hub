@@ -2,7 +2,7 @@
   "name": "vscode-coolify",
   "displayName": "Coolify Deployments",
   "description": "Deploy, manage, and monitor Coolify applications, databases, and servers. Works in VS Code, Cursor, Trae, Windsurf, VSCodium, and any Open VSX-compatible editor.",
-  "version": "2.3.8",
+  "version": "2.4.0",
   "author": {
     "name": "Marko Tiosavljevic",
     "url": "https://imbamarketing.com"
@@ -131,6 +131,12 @@
         "key": "ctrl+shift+x",
         "mac": "cmd+shift+x",
         "when": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.viewApplicationLogsLive",
+        "key": "ctrl+shift+alt+l",
+        "mac": "cmd+shift+alt+l",
+        "when": "coolify.isConfigured"
       }
     ],
     "menus": {
@@ -166,6 +172,11 @@
           "command": "coolify.viewApplicationLogs",
           "when": "view == coolify-deployments && viewItem =~ /^coolifyApp_/",
           "group": "inline@3"
+        },
+        {
+          "command": "coolify.viewApplicationLogsLive",
+          "when": "view == coolify-deployments && viewItem =~ /^coolifyApp_/",
+          "group": "coolify@0"
         },
         {
           "command": "coolify.startApplication",
@@ -271,6 +282,12 @@
         "command": "coolify.viewApplicationLogs",
         "title": "Coolify: View Application Logs",
         "icon": "$(output)",
+        "enablement": "coolify.isConfigured"
+      },
+      {
+        "command": "coolify.viewApplicationLogsLive",
+        "title": "Coolify: View Live App Logs",
+        "icon": "$(pulse)",
         "enablement": "coolify.isConfigured"
       },
       {

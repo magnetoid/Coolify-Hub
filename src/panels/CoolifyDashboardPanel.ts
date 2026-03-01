@@ -42,6 +42,9 @@ export class CoolifyDashboardPanel {
                     case 'openLogs':
                         vscode.commands.executeCommand('coolify.viewApplicationLogs', message.uuid, message.name);
                         break;
+                    case 'openLiveLogs':
+                        vscode.commands.executeCommand('coolify.viewApplicationLogsLive', message.uuid, message.name);
+                        break;
                     case 'deployApp':
                         vscode.commands.executeCommand('coolify.startDeployment', message.uuid);
                         break;
@@ -191,7 +194,8 @@ export class CoolifyDashboardPanel {
                     <p class="truncate" title="${a.git_repository}@${a.git_branch}">📦 ${gitHtml}</p>
                 </div>
                 <div class="card-footer">
-                    <button class="icon-btn" onclick="openLogs('${uuid}', '${a.name}')" title="Logs">📋 Logs</button>
+                    <button class="icon-btn" onclick="openLogs('${uuid}', '${a.name}')" title="One-shot Logs">📋 Logs</button>
+                    <button class="icon-btn" onclick="openLiveLogs('${uuid}', '${a.name}')" title="Live Tail Logs">📡 Live Logs</button>
                     <button class="icon-btn deploy-btn" onclick="deployApp('${uuid}')" title="Deploy">🚀 Deploy</button>
                 </div>
             </div>
@@ -353,6 +357,7 @@ export class CoolifyDashboardPanel {
                 <script>
                     const vscode = acquireVsCodeApi();
                     function openLogs(uuid, name) { vscode.postMessage({ type: 'openLogs', uuid, name }); }
+                    function openLiveLogs(uuid, name) { vscode.postMessage({ type: 'openLiveLogs', uuid, name }); }
                     function deployApp(uuid) { vscode.postMessage({ type: 'deployApp', uuid }); }
                 </script>
             </body>

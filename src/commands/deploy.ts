@@ -1,128 +1,292 @@
 import * as vscode from 'vscode';
-import { CoolifyWebViewProvider } from '../providers/CoolifyWebViewProvider';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyService } from '../services/CoolifyService';
+import { Application } from '../types';
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
+import { execSync } from 'child_process';
 
-const execAsync = promisify(exec);
+// ─── Shared Output Channel ────────────────────────────────────────────────────
 
-let deployLogsOutputChannel: vscode.OutputChannel | undefined;
-function getDeployLogsChannel(): vscode.OutputChannel {
-    if (!deployLogsOutputChannel) {
-        deployLogsOutputChannel = vscode.window.createOutputChannel('Coolify Build Logs');
+let pipelineChannel: vscode.OutputChannel | undefined;
+
+function getPipelineChannel(): vscode.OutputChannel {
+    if (!pipelineChannel) {
+        pipelineChannel = vscode.window.createOutputChannel('Coolify: Deploy Pipeline');
     }
-    return deployLogsOutputChannel;
+    return pipelineChannel;
 }
 
-export async function runDeploymentFlow(configManager: ConfigurationManager, appUuid: string, appName: string = 'Application') {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function banner(channel: vscode.OutputChannel, stage: string) {
+    channel.appendLine('');
+    channel.appendLine(`${'─'.repeat(60)}`);
+    channel.appendLine(`  ${stage}`);
+    channel.appendLine(`${'─'.repeat(60)}`);
+}
+
+function timestamp(): string {
+    return new Date().toLocaleTimeString();
+}
+
+// ─── Stage 1: Git Push (live streaming) ──────────────────────────────────────
+
+function gitPushLive(workspaceRoot: string, channel: vscode.OutputChannel): Promise<boolean> {
+    return new Promise((resolve) => {
+        banner(channel, '🔀  STAGE 1 — Git Push');
+        channel.appendLine(`[${timestamp()}] Running: git push origin HEAD`);
+
+        const proc = spawn('git', ['push', 'origin', 'HEAD'], { cwd: workspaceRoot });
+
+        proc.stdout.on('data', (data: Buffer) => {
+            channel.append(data.toString());
+        });
+        proc.stderr.on('data', (data: Buffer) => {
+            // Git sends most output (including progress) to stderr
+            channel.append(data.toString());
+        });
+        proc.on('close', (code) => {
+            if (code === 0) {
+                channel.appendLine(`[${timestamp()}] ✅ Git push succeeded.`);
+                resolve(true);
+            } else {
+                channel.appendLine(`[${timestamp()}] ❌ Git push exited with code ${code}.`);
+                resolve(false);
+            }
+        });
+        proc.on('error', (err) => {
+            channel.appendLine(`[${timestamp()}] ❌ Git push error: ${err.message}`);
+            resolve(false);
+        });
+    });
+}
+
+// ─── Stage 2: Commit SHA Verification ────────────────────────────────────────
+
+async function waitForCommitOnCoolify(
+    service: CoolifyService,
+    appUuid: string,
+    localSha: string,
+    channel: vscode.OutputChannel
+): Promise<void> {
+    banner(channel, '✅  STAGE 2 — Commit Verification');
+    channel.appendLine(`[${timestamp()}] Waiting for Coolify to detect commit: ${localSha.slice(0, 8)}`);
+
+    const maxAttempts = 20;   // 20 × 3s = 60s max
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            const app = await service.getApplication(appUuid);
+            const coolifysha = (app as any).git_commit_sha as string | undefined;
+            channel.appendLine(`[${timestamp()}] Attempt ${i + 1}/${maxAttempts} — Coolify SHA: ${coolifysha?.slice(0, 8) ?? 'unknown'}`);
+            if (coolifysha && localSha.startsWith(coolifysha) || (coolifysha && coolifysha.startsWith(localSha.slice(0, 8)))) {
+                channel.appendLine(`[${timestamp()}] ✅ Commit verified on Coolify!`);
+                return;
+            }
+        } catch (e) {
+            channel.appendLine(`[${timestamp()}] (poll error: ${e instanceof Error ? e.message : String(e)})`);
+        }
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    channel.appendLine(`[${timestamp()}] ⚠️  Commit not yet visible on Coolify — continuing anyway (webhook may handle it).`);
+}
+
+// ─── Stage 3 + 4: Deploy & Live Build Logs ───────────────────────────────────
+
+async function deployAndStreamLogs(
+    service: CoolifyService,
+    appUuid: string,
+    appName: string,
+    channel: vscode.OutputChannel,
+    token: vscode.CancellationToken
+): Promise<boolean> {
+    banner(channel, '🚀  STAGE 3 — Triggering Deployment');
+
+    let deployUuid: string | undefined;
+    try {
+        deployUuid = await service.startDeployment(appUuid);
+    } catch (err) {
+        channel.appendLine(`[${timestamp()}] ❌ Failed to start deployment: ${err instanceof Error ? err.message : String(err)}`);
+        return false;
+    }
+
+    if (!deployUuid) {
+        channel.appendLine(`[${timestamp()}] ⚠️  Deployment started but no UUID returned — cannot stream logs.`);
+        vscode.window.showInformationMessage(`🚀 Deployment started for ${appName}`);
+        return true;
+    }
+
+    channel.appendLine(`[${timestamp()}] Deploy UUID: ${deployUuid}`);
+
+    banner(channel, '📋  STAGE 4 — Live Deploy Logs');
+    channel.appendLine(`[${timestamp()}] Polling for build logs...`);
+
+    let lastLogLength = 0;
+    let isFinished = false;
+    let success = false;
+
+    while (!isFinished && !token.isCancellationRequested) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+            const deployInfo = await service.getDeployment(deployUuid);
+            if (!deployInfo) { continue; }
+
+            const anyInfo = deployInfo as any;
+            if (anyInfo.logs && typeof anyInfo.logs === 'string') {
+                const currentLogs: string = anyInfo.logs;
+                if (currentLogs.length > lastLogLength) {
+                    channel.append(currentLogs.substring(lastLogLength));
+                    lastLogLength = currentLogs.length;
+                }
+            }
+
+            const status: string = deployInfo.status ?? '';
+            if (status === 'finished' || status === 'failed' || status === 'error') {
+                isFinished = true;
+                success = status === 'finished';
+                const icon = success ? '✅' : '❌';
+                channel.appendLine(`\n[${timestamp()}] ${icon} Deployment ${status.toUpperCase()}.`);
+                if (success) {
+                    vscode.window.showInformationMessage(`✅ Deployment successful: ${appName}`);
+                } else {
+                    vscode.window.showErrorMessage(`❌ Deployment failed: ${appName} (${status})`);
+                }
+            }
+        } catch (pollErr) {
+            channel.appendLine(`[${timestamp()}] (log poll error: ${pollErr instanceof Error ? pollErr.message : String(pollErr)})`);
+        }
+    }
+
+    return success;
+}
+
+// ─── Stage 5: Live App Logs (continuous tail) ─────────────────────────────────
+
+export async function streamAppLogsLive(
+    service: CoolifyService,
+    appUuid: string,
+    appName: string,
+    channel: vscode.OutputChannel,
+    token: vscode.CancellationToken
+): Promise<void> {
+    banner(channel, '📡  STAGE 5 — Live App Logs');
+    channel.appendLine(`[${timestamp()}] Tailing app logs for ${appName}… (cancel the progress notification to stop)`);
+
+    let lastLength = 0;
+
+    while (!token.isCancellationRequested) {
+        try {
+            const logs = await service.getApplicationLogs(appUuid);
+            if (logs && logs.length > lastLength) {
+                channel.append(logs.substring(lastLength));
+                lastLength = logs.length;
+            }
+        } catch (e) {
+            channel.appendLine(`[${timestamp()}] (app log fetch error: ${e instanceof Error ? e.message : String(e)})`);
+        }
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
+    channel.appendLine(`\n[${timestamp()}] 🛑 App log tailing stopped.`);
+}
+
+// ─── Main Entry Point ─────────────────────────────────────────────────────────
+
+export async function runDeploymentFlow(
+    configManager: ConfigurationManager,
+    appUuid: string,
+    appName: string = 'Application'
+) {
+    try {
+        const serverUrl = await configManager.getServerUrl();
+        const token = await configManager.getToken();
+        if (!serverUrl || !token) { throw new Error('Coolify is not configured. Please sign in.'); }
+
+        const service = new CoolifyService(serverUrl, token);
+        const channel = getPipelineChannel();
+        channel.clear();
+        channel.show(true);
+
+        channel.appendLine(`╔${'═'.repeat(58)}╗`);
+        channel.appendLine(`║  Coolify Deploy Pipeline — ${appName.padEnd(28)} ║`);
+        channel.appendLine(`║  Started: ${timestamp().padEnd(46)} ║`);
+        channel.appendLine(`╚${'═'.repeat(58)}╝`);
+
+        // ── Stage 1: Git Push ─────────────────────────────────────────────────
+
+        let localSha: string | undefined;
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+            // Get local HEAD SHA before pushing
+            try {
+                localSha = execSync('git rev-parse HEAD', { cwd: workspaceRoot }).toString().trim();
+            } catch {
+                channel.appendLine(`[${timestamp()}] ⚠️  Could not read local git SHA.`);
+            }
+
+            const pushOk = await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: `[Coolify] ${appName}: Pushing to GitHub…`, cancellable: false },
+                () => gitPushLive(workspaceRoot, channel)
+            );
+
+            if (!pushOk) {
+                vscode.window.showErrorMessage(`❌ Git push failed for ${appName}. Aborting deploy.`);
+                return;
+            }
+
+            // ── Stage 2: Commit Verification ─────────────────────────────────
+
+            if (localSha) {
+                await vscode.window.withProgress(
+                    { location: vscode.ProgressLocation.Notification, title: `[Coolify] ${appName}: Verifying commit on Coolify…`, cancellable: false },
+                    () => waitForCommitOnCoolify(service, appUuid, localSha!, channel)
+                );
+            }
+        } else {
+            banner(channel, '🔀  STAGE 1 — Git Push');
+            channel.appendLine(`[${timestamp()}] ⏭  No workspace open — skipping git push.`);
+            banner(channel, '✅  STAGE 2 — Commit Verification');
+            channel.appendLine(`[${timestamp()}] ⏭  Skipped (no workspace).`);
+        }
+
+        // ── Stages 3 + 4 + 5 ─────────────────────────────────────────────────
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `[Coolify] ${appName}: Deploying…`,
+                cancellable: true
+            },
+            async (_progress, cancellationToken) => {
+                const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, channel, cancellationToken);
+
+                if (deploySuccess) {
+                    await streamAppLogsLive(service, appUuid, appName, channel, cancellationToken);
+                }
+            }
+        );
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Deploy pipeline error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+// ─── Command Palette Wrapper ──────────────────────────────────────────────────
+
+export async function startDeploymentCommand(
+    configManager: ConfigurationManager,
+    webviewProvider?: any
+) {
     try {
         const serverUrl = await configManager.getServerUrl();
         const token = await configManager.getToken();
         if (!serverUrl || !token) { throw new Error('Not configured'); }
 
         const service = new CoolifyService(serverUrl, token);
-
-        // 1. Try Git Push
-        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-            const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
-            try {
-                await vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Notification,
-                    title: `Pushing local changes for ${appName}...`,
-                    cancellable: false
-                }, async () => {
-                    await execAsync('git push origin HEAD', { cwd: workspaceRoot });
-                });
-                vscode.window.showInformationMessage(`✅ Git push successful for ${appName}`);
-            } catch (error) {
-                // Ignore or log if no changes or upstream not set
-                console.log("Git push skipped or failed:", error);
-            }
-        }
-
-        // 2. Start Deployment
-        const channel = getDeployLogsChannel();
-        channel.clear();
-        channel.show(true);
-        channel.appendLine(`── Coolify Deployment Logs: ${appName} ──`);
-        channel.appendLine(`Starting deployment...`);
-
-        let deployUuid: string | undefined;
-        await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Deploying ${appName}...`, cancellable: false },
-            async (progress) => {
-                try {
-                    deployUuid = await service.startDeployment(appUuid);
-
-                    if (!deployUuid) {
-                        channel.appendLine("Deployment started, but no UUID returned to track logs.");
-                        vscode.window.showInformationMessage(`🚀 Deployment started for ${appName}`);
-                        return;
-                    }
-
-                    channel.appendLine(`Deployment UUID: ${deployUuid}`);
-                    channel.appendLine(`Polling for live logs...`);
-
-                    // 3. Poll for Logs & Status
-                    let isFinished = false;
-                    let lastLogLength = 0;
-
-                    while (!isFinished) {
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-
-                        try {
-                            const deployInfo = await service.getDeployment(deployUuid);
-                            if (!deployInfo) continue;
-
-                            progress.report({ message: `Status: ${deployInfo.status}` });
-
-                            const anyInfo = deployInfo as any;
-                            if (anyInfo.logs && typeof anyInfo.logs === 'string') {
-                                const currentLogs = anyInfo.logs;
-                                if (currentLogs.length > lastLogLength) {
-                                    const newLogs = currentLogs.substring(lastLogLength);
-                                    channel.append(newLogs);
-                                    lastLogLength = currentLogs.length;
-                                }
-                            }
-
-                            if (deployInfo.status === 'finished' || deployInfo.status === 'failed' || deployInfo.status === 'error') {
-                                isFinished = true;
-                                if (deployInfo.status === 'finished') {
-                                    vscode.window.showInformationMessage(`✅ Deployment successful: ${appName}`);
-                                    channel.appendLine(`\n[SUCCESS] Deployment finished successfully!`);
-                                } else {
-                                    vscode.window.showErrorMessage(`❌ Deployment failed: ${appName}`);
-                                    channel.appendLine(`\n[ERROR] Deployment failed with status: ${deployInfo.status}`);
-                                }
-                            }
-                        } catch (pollErr) {
-                            console.error('Polling error:', pollErr);
-                        }
-                    }
-                } catch (err) {
-                    vscode.window.showErrorMessage(`❌ Deployment failed to start: ${err instanceof Error ? err.message : 'Unknown'}`);
-                    channel.appendLine(`\n[ERROR] Failed to start: ${err instanceof Error ? err.message : 'Unknown'}`);
-                }
-            }
-        );
-    } catch (error) {
-        vscode.window.showErrorMessage(`Failed to deploy: ${error instanceof Error ? error.message : 'Unknown'}`);
-    }
-}
-
-export async function startDeploymentCommand(
-    configManager: ConfigurationManager,
-    webviewProvider: CoolifyWebViewProvider | undefined
-) {
-    try {
-        if (!webviewProvider) {
-            vscode.window.showErrorMessage('Coolify provider not initialized');
-            return;
-        }
-        const applications = await webviewProvider.getApplications();
+        const applications = await service.getApplications();
 
         if (!applications || applications.length === 0) {
             vscode.window.showInformationMessage('No applications found');
@@ -130,26 +294,20 @@ export async function startDeploymentCommand(
         }
 
         const selected = await vscode.window.showQuickPick(
-            applications.map((app) => ({
+            applications.map((app: Application) => ({
                 label: app.name,
                 description: app.status,
-                detail: `Status: ${app.status}`,
-                id: app.id,
+                detail: app.fqdn ? `🌐 ${app.fqdn}` : undefined,
+                id: app.id || app.uuid || '',
             })),
-            {
-                placeHolder: 'Select an application to deploy',
-                title: 'Start Deployment',
-            }
+            { placeHolder: 'Select an application to deploy', title: 'Coolify: Start Deploy Pipeline' }
         );
 
         if (selected) {
             await runDeploymentFlow(configManager, selected.id, selected.label);
-            webviewProvider.refreshData();
         }
     } catch (error) {
-        vscode.window.showErrorMessage(
-            error instanceof Error ? error.message : 'Failed to start deployment'
-        );
+        vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to start deployment');
     }
 }
 
@@ -159,10 +317,7 @@ export async function cancelDeploymentCommand(
     try {
         const serverUrl = await configManager.getServerUrl();
         const token = await configManager.getToken();
-
-        if (!serverUrl || !token) {
-            throw new Error('Extension not configured properly');
-        }
+        if (!serverUrl || !token) { throw new Error('Extension not configured properly'); }
 
         const service = new CoolifyService(serverUrl, token);
         const deployments = await service.getDeployments();
@@ -180,28 +335,19 @@ export async function cancelDeploymentCommand(
                 detail: d.commit_message || `Deployment ID: ${d.id}`,
                 id: d.id,
             })),
-            {
-                placeHolder: 'Select a deployment to cancel',
-                title: 'Cancel Deployment',
-            }
+            { placeHolder: 'Select a deployment to cancel', title: 'Cancel Deployment' }
         );
 
         if (selected) {
             vscode.window.withProgress(
-                {
-                    location: vscode.ProgressLocation.Notification,
-                    title: `Canceling ${selected.label}...`,
-                    cancellable: false,
-                },
+                { location: vscode.ProgressLocation.Notification, title: `Canceling ${selected.label}…`, cancellable: false },
                 async () => {
                     await service.cancelDeployment(selected.id);
-                    vscode.window.showInformationMessage(`Successfully canceled deployment.`);
+                    vscode.window.showInformationMessage('✅ Deployment canceled.');
                 }
             );
         }
     } catch (error) {
-        vscode.window.showErrorMessage(
-            error instanceof Error ? error.message : 'Failed to cancel deployment'
-        );
+        vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to cancel deployment');
     }
 }
