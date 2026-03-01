@@ -87,8 +87,8 @@ Right-click any item in the tree for a context menu. Inline action buttons appea
 
 | Action | Keyboard (Mac / PC) | Where |
 |---|---|---|
-| 🚀 Deploy application | `⌘⇧D` / `Ctrl+Shift+D` | Tree button, palette, QuickPick |
-| 📋 View live logs | `⌘⇧L` / `Ctrl+Shift+L` | Tree button, palette |
+| 🚀 Deploy application | `⌘⇧D` / `Ctrl+Shift+D` | Tree button, palette, QuickPick, Sidebar Webview |
+| 📋 View live logs | `⌘⇧L` / `Ctrl+Shift+L` | Tree button, palette, Sidebar Webview |
 | 🔄 Refresh sidebar | `⌘⇧R` / `Ctrl+Shift+R` | Tree toolbar, palette |
 | ✖ Cancel deployment | `⌘⇧X` / `Ctrl+Shift+X` | Context menu, palette |
 | ▶ Start application/DB | — | Context menu |
@@ -100,9 +100,19 @@ Right-click any item in the tree for a context menu. Inline action buttons appea
 
 ---
 
+### 🚀 Auto-Push & Live Deployment Tracking
+
+When you click **Deploy** on any application, the extension completely removes the friction of deploying context:
+
+1. **Auto Git Push**: It automatically runs `git push origin HEAD` in your active VS Code workspace so your latest code is sent upstream before deploying.
+2. **One-Click Deploy**: The extension instantly triggers the deployment webhook on Coolify.
+3. **Live Log Streaming**: The extension pops open a native VS Code Output Channel (named `Coolify Build Logs`) and streams the Docker build logs _in real-time_ so you know exactly what is happening during the deployment. No more wondering if a build is successful!
+
+---
+
 ### ⚡ Quick Deploy — type-to-search across all apps
 
-Run `Coolify: Quick Deploy` from the palette. A searchable list of all your apps appears with their live status. Select one → deployment starts immediately. After it begins, a **View Logs** button appears inline in the notification.
+Run `Coolify: Quick Deploy` from the palette. A searchable list of all your apps appears with their live status. Select one → deployment flow starts immediately. After it begins, the **Live Logs** open automatically inside VS Code.
 
 ---
 
@@ -113,7 +123,7 @@ A persistent status indicator in the editor's bottom bar shows the state of your
 **🧠 Intelligent Workspace Auto-Detection:**
 The extension automatically inspects the `.git/config` of your active VS Code workspace. It seamlessly filters applications to **only show** the Coolify application that matches your current local Git origin. This means your Status Bar stays perfectly clean in unrelated projects!
 
-*(Don't use Git? You can still manually pin a specific app via `coolify.defaultApplication` in Settings).*
+_(Don't use Git? You can still manually pin a specific app via `coolify.defaultApplication` in Settings)._
 
 ```
   🟢 coolify-api: Running   🔴 marketing-site: Stopped
@@ -121,17 +131,17 @@ The extension automatically inspects the `.git/config` of your active VS Code wo
 
 ---
 
-### 📋 Real-time Log Streaming
+### 📋 View Application Logs
 
-`Coolify: View Application Logs` opens a dedicated **Coolify Logs** Output Channel and streams live logs from the selected application. No browser needed, no extra tools — just the familiar VS Code output panel.
+`Coolify: View Application Logs` opens a dedicated **Coolify Logs** Output Channel and brings up the runtime execution logs from the selected application footprint. No browser needed, no extra tools — just the familiar VS Code output panel.
 
 ---
 
 ### 🔀 Git Push Advisor
 
-When you push or merge to a branch that matches a Coolify application's configured branch, the extension detects it automatically and asks:
+When you push or merge to a branch that matches a Coolify application's configured branch (handled via standard Git CLI hooks), the extension detects it automatically and asks:
 
-> *"marketing-site is configured to deploy from `main`. Deploy now?"*
+> _"marketing-site is configured to deploy from `main`. Deploy now?"_
 
 Click **Deploy** — done. No switching context, no opening Coolify, no manual trigger.
 
@@ -200,7 +210,7 @@ Coolify REST API (v1)         ← your server, your data
 
 ### Step 1 — Download the `.vsix`
 
-Go to [**Releases**](https://github.com/magnetoid/Coolify-Deployments/releases) and download the latest `vscode-coolify-X.X.X.vsix`.
+Go to [**Releases**](https://github.com/magnetoid/Coolify-Deployments/releases) and download the latest `vscode-coolify-2.3.8.vsix`.
 
 Or build it yourself from source (requires Node.js 20+):
 
@@ -210,7 +220,7 @@ cd Coolify-Deployments
 pnpm install
 pnpm add -g @vscode/vsce
 vsce package --no-dependencies
-# ↳ generates vscode-coolify-2.3.7.vsix
+# ↳ generates vscode-coolify-2.3.8.vsix
 ```
 
 ---
@@ -231,7 +241,7 @@ Or use the Extensions sidebar (`Ctrl+Shift+X`) → click the **⋯ menu** → **
 <summary><b>VS Code</b></summary>
 
 ```bash
-code --install-extension vscode-coolify-2.3.7.vsix
+code --install-extension vscode-coolify-2.3.8.vsix
 ```
 
 </details>
@@ -240,7 +250,7 @@ code --install-extension vscode-coolify-2.3.7.vsix
 <summary><b>Cursor</b></summary>
 
 ```bash
-cursor --install-extension vscode-coolify-2.3.7.vsix
+cursor --install-extension vscode-coolify-2.3.8.vsix
 ```
 
 </details>
@@ -249,7 +259,7 @@ cursor --install-extension vscode-coolify-2.3.7.vsix
 <summary><b>Windsurf</b></summary>
 
 ```bash
-windsurf --install-extension vscode-coolify-2.3.7.vsix
+windsurf --install-extension vscode-coolify-2.3.8.vsix
 ```
 
 </details>
@@ -258,7 +268,7 @@ windsurf --install-extension vscode-coolify-2.3.7.vsix
 <summary><b>VSCodium</b></summary>
 
 ```bash
-codium --install-extension vscode-coolify-2.3.7.vsix
+codium --install-extension vscode-coolify-2.3.8.vsix
 ```
 
 </details>
@@ -343,7 +353,7 @@ The server URL is synced via VS Code Settings Sync. API tokens are **never synce
 
 | Editor | Install | SecretStorage | Settings Sync | Remote/SSH |
 |---|---|---|---|---|
-| VS Code | Marketplace *(soon)* | ✅ Full | ✅ | ✅ |
+| VS Code | Marketplace _(soon)_ | ✅ Full | ✅ | ✅ |
 | Cursor | `.vsix` | ✅ Full | ✅ | ✅ |
 | Windsurf | `.vsix` | ✅ Full | — | ✅ |
 | Trae | `.vsix` | ✅ Full | — | ✅ |

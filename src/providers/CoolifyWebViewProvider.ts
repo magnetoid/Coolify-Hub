@@ -170,38 +170,6 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
     } as Deployment));
   }
 
-  public async deployApplication(applicationId: string): Promise<void> {
-    if (this.deployingApplications.has(applicationId)) {
-      vscode.window.showInformationMessage('Deployment already in progress');
-      return;
-    }
-
-    this.deployingApplications.add(applicationId);
-
-    try {
-      await withRetry(async () => {
-        const serverUrl = await this.configManager.getServerUrl();
-        const token = await this.configManager.getToken();
-
-        if (!serverUrl || !token) {
-          throw new Error('Extension not configured properly');
-        }
-
-        const service = new CoolifyService(serverUrl, token);
-        await service.startDeployment(applicationId);
-      });
-
-      await this.refreshData();
-
-      if (this.isViewValid()) {
-        vscode.window.showInformationMessage('Deployment started successfully');
-      }
-    } catch (error) {
-      this.handleError('Failed to start deployment', error);
-    } finally {
-      this.deployingApplications.delete(applicationId);
-    }
-  }
 
   public async resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -259,7 +227,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
               break;
             case 'deploy':
               if (data.applicationId) {
-                await this.deployApplication(data.applicationId);
+                await vscode.commands.executeCommand('coolify.startDeployment', data.applicationId, data.name || 'Application');
               }
               break;
             case 'startApp':

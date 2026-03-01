@@ -3,7 +3,7 @@ import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyTreeDataProvider, CoolifyTreeItem } from '../providers/CoolifyTreeDataProvider';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
-import { startDeploymentCommand, cancelDeploymentCommand } from './deploy';
+import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
 import { viewApplicationLogsCommand, createDatabaseBackupCommand } from './logs';
@@ -61,11 +61,11 @@ export function registerCommands(
     register('coolify.startDeployment', (itemOrUuid?: CoolifyTreeItem | string, name?: string) => {
         if (typeof itemOrUuid === 'string') {
             // Invoked by AI / API
-            return _deployAppById(configManager, itemOrUuid);
+            return runDeploymentFlow(configManager, itemOrUuid, name);
         } else if (itemOrUuid?.kind === 'application' && itemOrUuid.rawData) {
             // Invoked via TreeView menu
             const app = itemOrUuid.rawData as Application;
-            return _deployAppById(configManager, app.id || app.uuid || '');
+            return runDeploymentFlow(configManager, app.id || app.uuid || '', app.name);
         }
         // Invoked via Command Palette
         return startDeploymentCommandWrapper(configManager, treeDataProvider);
@@ -192,23 +192,8 @@ async function startDeploymentCommandWrapper(
     );
 
     if (selected) {
-        await _deployAppById(configManager, selected.id);
+        await runDeploymentFlow(configManager, selected.id, selected.label);
     }
-}
-
-async function _deployAppById(configManager: ConfigurationManager, uuid: string) {
-    const serverUrl = await configManager.getServerUrl();
-    const token = await configManager.getToken();
-    if (!serverUrl || !token) { throw new Error('Not configured'); }
-
-    const service = new CoolifyService(serverUrl, token);
-    await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: 'Starting deployment...', cancellable: false },
-        async () => {
-            await service.startDeployment(uuid);
-            vscode.window.showInformationMessage('🚀 Deployment started!');
-        }
-    );
 }
 
 async function _appAction(
