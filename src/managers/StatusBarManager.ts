@@ -4,7 +4,7 @@ import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
 
 export class StatusBarManager {
-    private items: vscode.StatusBarItem[] = [];
+    private items: Map<string, vscode.StatusBarItem> = new Map();
     private pollInterval?: NodeJS.Timeout;
     private isDisposed = false;
 
@@ -31,9 +31,10 @@ export class StatusBarManager {
         if (this.isDisposed) { return; }
 
         const isConfigured = await this.configManager.isConfigured();
-        this.clearItems();
+        // remove `this.clearItems();` from the beginning of the function since it's now handled below.
 
         if (!isConfigured) {
+            this.clearItems();
             return;
         }
 
@@ -57,8 +58,19 @@ export class StatusBarManager {
             // Only show apps that have a known, displayable status
             const validApps = appsToShow.filter((a: Application) => a.status && a.status.toLowerCase() !== 'unknown');
 
+            const seenIds = new Set<string>();
+
             for (const app of validApps) {
-                const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+                const appId = app.id || app.uuid;
+                if (!appId) continue;
+                seenIds.add(appId);
+
+                let item = this.items.get(appId);
+                if (!item) {
+                    item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+                    this.items.set(appId, item);
+                }
+
                 item.name = `Coolify — ${app.name}`;
 
                 const statusIcon = this.getStatusIcon(app.status);
@@ -69,12 +81,19 @@ export class StatusBarManager {
                 item.command = {
                     title: 'View Logs',
                     command: 'coolify.viewApplicationLogs',
-                    arguments: [{ id: app.id || app.uuid, name: app.name }],
+                    arguments: [{ id: appId, name: app.name }],
                 };
 
                 this.applyStatusBackground(item, app.status);
                 item.show();
-                this.items.push(item);
+            }
+
+            // Cleanup removed apps
+            for (const [id, item] of this.items.entries()) {
+                if (!seenIds.has(id)) {
+                    item.dispose();
+                    this.items.delete(id);
+                }
             }
         } catch (error) {
             console.error('StatusBarManager: Failed to refresh:', error);
@@ -82,13 +101,12 @@ export class StatusBarManager {
     }
 
     private getStatusIcon(status: string): string {
-        switch (status?.toLowerCase()) {
-            case 'running': return '$(vm-running)';
-            case 'stopped': case 'exited': return '$(vm-outline)';
-            case 'deploying': case 'starting': return '$(loading~spin)';
-            case 'error': case 'failed': return '$(error)';
-            default: return '$(circle-outline)';
-        }
+        const s = status?.toLowerCase() || '';
+        if (s.includes('running')) return '$(vm-running)';
+        if (s.includes('stopped') || s.includes('exited')) return '$(vm-outline)';
+        if (s.includes('deploying') || s.includes('starting')) return '$(loading~spin)';
+        if (s.includes('error') || s.includes('failed')) return '$(error)';
+        return '$(circle-outline)';
     }
 
     private formatStatus(status: string): string {
@@ -97,25 +115,21 @@ export class StatusBarManager {
     }
 
     private applyStatusBackground(item: vscode.StatusBarItem, status: string): void {
-        switch (status?.toLowerCase()) {
-            case 'error':
-            case 'failed':
-                item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-                break;
-            case 'deploying':
-            case 'starting':
-                item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-                break;
-            default:
-                item.backgroundColor = undefined;
+        const s = status?.toLowerCase() || '';
+        if (s.includes('error') || s.includes('failed')) {
+            item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        } else if (s.includes('deploying') || s.includes('starting')) {
+            item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        } else {
+            item.backgroundColor = undefined;
         }
     }
 
     private clearItems(): void {
-        for (const item of this.items) {
+        for (const item of this.items.values()) {
             item.dispose();
         }
-        this.items = [];
+        this.items.clear();
     }
 
     public dispose(): void {
