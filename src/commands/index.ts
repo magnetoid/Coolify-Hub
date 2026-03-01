@@ -3,7 +3,8 @@ import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyTreeDataProvider, CoolifyTreeItem } from '../providers/CoolifyTreeDataProvider';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
-import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow } from './deploy';
+import { StatusBarManager } from '../managers/StatusBarManager';
+import { startDeploymentCommand, cancelDeploymentCommand, runDeploymentFlow, deployCurrentProjectCommand } from './deploy';
 import { startApplicationCommand, stopApplicationCommand, restartApplicationCommand } from './applicationActions';
 import { startDatabaseCommand, stopDatabaseCommand } from './databaseActions';
 import { viewApplicationLogsCommand, viewApplicationLogsLiveCommand, createDatabaseBackupCommand } from './logs';
@@ -15,7 +16,8 @@ export function registerCommands(
     context: vscode.ExtensionContext,
     configManager: ConfigurationManager,
     treeDataProvider: CoolifyTreeDataProvider,
-    updateConfigurationState: () => Promise<void>
+    updateConfigurationState: () => Promise<void>,
+    statusBarManager: StatusBarManager
 ) {
     const register = (id: string, fn: (...args: any[]) => any) =>
         context.subscriptions.push(vscode.commands.registerCommand(id, fn));
@@ -70,6 +72,8 @@ export function registerCommands(
         // Invoked via Command Palette
         return startDeploymentCommandWrapper(configManager, treeDataProvider);
     });
+
+    register('coolify.deployCurrentProject', () => deployCurrentProjectCommand(configManager, statusBarManager));
 
     register('coolify.cancelDeployment', () => cancelDeploymentCommand(configManager));
 

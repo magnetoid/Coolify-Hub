@@ -120,7 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // ─── Register all commands ────────────────────────────────────────────────
-  registerCommands(context, configManager, treeDataProvider, updateConfigurationState);
+  registerCommands(context, configManager, treeDataProvider!, updateConfigurationState, statusBarManager!);
 
   // ─── Auth Provider (Option 2) ─────────────────────────────────────────────
   const authProvider = new CoolifyAuthProvider(context, configManager);

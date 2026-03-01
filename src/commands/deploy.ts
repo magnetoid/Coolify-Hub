@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
+import { StatusBarManager } from '../managers/StatusBarManager';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application } from '../types';
 
@@ -341,6 +342,42 @@ export async function startDeploymentCommand(
                 id: app.id || app.uuid || '',
             })),
             { placeHolder: 'Select an application to deploy', title: 'Coolify: Start Deploy Pipeline' }
+        );
+
+        if (selected) {
+            await runDeploymentFlow(configManager, selected.id, selected.label);
+        }
+    } catch (error) {
+        vscode.window.showErrorMessage(error instanceof Error ? error.message : 'Failed to start deployment');
+    }
+}
+
+export async function deployCurrentProjectCommand(
+    configManager: ConfigurationManager,
+    statusBarManager: StatusBarManager
+) {
+    try {
+        const matchedApps = statusBarManager.getMatchedApps();
+
+        if (!matchedApps || matchedApps.length === 0) {
+            vscode.window.showInformationMessage('No Coolify apps found matching the current workspace.');
+            return;
+        }
+
+        if (matchedApps.length === 1) {
+            const app = matchedApps[0];
+            await runDeploymentFlow(configManager, app.id || app.uuid || '', app.name);
+            return;
+        }
+
+        const selected = await vscode.window.showQuickPick(
+            matchedApps.map((app: Application) => ({
+                label: app.name,
+                description: app.status,
+                detail: app.fqdn ? `🌐 ${app.fqdn}` : undefined,
+                id: app.id || app.uuid || '',
+            })),
+            { placeHolder: 'Select an application to deploy from current workspace', title: 'Coolify: Deploy Current Project' }
         );
 
         if (selected) {

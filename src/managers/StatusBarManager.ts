@@ -23,6 +23,11 @@ export class StatusBarManager {
     private isDisposed = false;
     private isRefreshing = false;
     private cachedRemotes: Set<string> | null = null;
+    private matchedApps: Application[] = [];
+
+    public getMatchedApps(): Application[] {
+        return this.matchedApps;
+    }
 
     constructor(private configManager: ConfigurationManager) { }
 
@@ -104,6 +109,8 @@ export class StatusBarManager {
                     });
                 }
             }
+
+            this.matchedApps = appsToShow;
 
             // Only show apps that have a known, displayable status
             const validApps = appsToShow.filter((a: Application) => a.status && a.status.toLowerCase() !== 'unknown');
