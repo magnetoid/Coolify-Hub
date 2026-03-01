@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application, Database } from '../types';
+import { isCoolifyCliInstalled, runCliCommandInTerminal } from '../utils/cliBridge';
 
 let logsOutputChannel: vscode.OutputChannel | undefined;
 
@@ -113,6 +114,16 @@ export async function viewApplicationLogsLiveCommand(
             targetName = selected.label;
         }
 
+        const targetUuid = targetId!;
+
+        // ── Hybrid CLI Handoff ──
+        if (await isCoolifyCliInstalled()) {
+            vscode.window.showInformationMessage(`Opening live logs for ${targetName} via Coolify CLI...`);
+            await runCliCommandInTerminal(`logs tail ${targetUuid}`, `Logs: ${targetName}`);
+            return;
+        }
+
+        // ── Fallback: HTTP Polling ──
         const channel = getLogsChannel();
         channel.clear();
         channel.show(true);

@@ -8,7 +8,7 @@ import { Application } from '../types';
 const exec = util.promisify(cp.exec);
 
 function normalizeGitUrl(url: string | undefined): string | null {
-    if (!url) return null;
+    if (!url) { return null; }
     let cleanUrl = url.trim().replace(/\.git$/, '');
     const match = cleanUrl.match(/[:/]([^/]+\/[^/]+)$/);
     if (match && match[1]) {
@@ -36,13 +36,13 @@ export class StatusBarManager {
 
         const remotes = new Set<string>();
         const folders = vscode.workspace.workspaceFolders;
-        if (!folders) return remotes;
+        if (!folders) { return remotes; }
 
         for (const folder of folders) {
             try {
                 const { stdout } = await exec('git config --get remote.origin.url', { cwd: folder.uri.fsPath });
                 const norm = normalizeGitUrl(stdout);
-                if (norm) remotes.add(norm);
+                if (norm) { remotes.add(norm); }
             } catch (e) { /* ignore */ }
         }
 
@@ -64,9 +64,9 @@ export class StatusBarManager {
             .getConfiguration('coolify')
             .get<number>('refreshInterval', 5000);
 
-        this.pollInterval = setInterval(async () => {
+        this.pollInterval = setInterval(() => {
             if (!this.isDisposed) {
-                await this.refreshStatusBar();
+                this.refreshStatusBar().catch(console.error);
             }
         }, intervalMs);
     }
@@ -119,7 +119,7 @@ export class StatusBarManager {
 
             for (const app of validApps) {
                 const appId = app.uuid || app.id;
-                if (!appId) continue;
+                if (!appId) { continue; }
                 seenIds.add(appId);
 
                 let item = this.items.get(appId);
@@ -161,20 +161,20 @@ export class StatusBarManager {
 
     private getStatusIcon(status: string): string {
         const s = status?.toLowerCase() || '';
-        if (s.includes('running')) return '$(vm-running)';
-        if (s.includes('stopped') || s.includes('exited')) return '$(vm-outline)';
-        if (s.includes('deploying') || s.includes('starting')) return '$(loading~spin)';
-        if (s.includes('error') || s.includes('failed')) return '$(error)';
+        if (s.includes('running')) { return '$(vm-running)'; }
+        if (s.includes('stopped') || s.includes('exited')) { return '$(vm-outline)'; }
+        if (s.includes('deploying') || s.includes('starting')) { return '$(loading~spin)'; }
+        if (s.includes('error') || s.includes('failed')) { return '$(error)'; }
         return '$(circle-outline)';
     }
 
     private formatStatus(status: string): string {
         const s = status?.toLowerCase() || '';
-        if (!s || s === 'unknown') return 'Unknown';
-        if (s.includes('running')) return 'Running';
-        if (s.includes('stopped') || s.includes('exited')) return 'Stopped';
-        if (s.includes('deploying') || s.includes('starting')) return 'Deploying';
-        if (s.includes('error') || s.includes('failed')) return 'Error';
+        if (!s || s === 'unknown') { return 'Unknown'; }
+        if (s.includes('running')) { return 'Running'; }
+        if (s.includes('stopped') || s.includes('exited')) { return 'Stopped'; }
+        if (s.includes('deploying') || s.includes('starting')) { return 'Deploying'; }
+        if (s.includes('error') || s.includes('failed')) { return 'Error'; }
         return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
     }
 

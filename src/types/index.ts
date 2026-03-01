@@ -25,6 +25,7 @@ export interface Deployment {
     startedAt?: string;
     deployment_url?: string;
     commit_message?: string;
+    logs?: string;
 }
 
 export interface Project {

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyService } from '../services/CoolifyService';
+import { Application, Server, Database } from '../types';
 
 export class CoolifyDashboardPanel {
     public static currentPanel: CoolifyDashboardPanel | undefined;
@@ -148,7 +149,7 @@ export class CoolifyDashboardPanel {
         `;
     }
 
-    private getDashboardHtml(servers: any[], apps: any[], dbs: any[], serverUrl: string): string {
+    private getDashboardHtml(servers: Server[], apps: Application[], dbs: Database[], serverUrl: string): string {
         const logoUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'public', 'logo.svg'));
 
         const serverCards = servers.map(s => `
@@ -199,10 +200,12 @@ export class CoolifyDashboardPanel {
                     <button class="icon-btn deploy-btn" onclick="deployApp('${uuid}')" title="Deploy">🚀 Deploy</button>
                 </div>
             </div>
-        `}).join('');
+        `;
+        }).join('');
 
         const dbCards = dbs.map(d => {
-            const badgeClass = statusColors[d.status?.toLowerCase()] || 'badge-dark';
+            const statusKey = d.status?.toLowerCase() || 'unknown';
+            const badgeClass = statusColors[statusKey] || 'badge-dark';
             return `
             <div class="card">
                 <div class="card-header">
@@ -213,7 +216,8 @@ export class CoolifyDashboardPanel {
                     <p>Type: <code>${d.type}</code></p>
                 </div>
             </div>
-        `}).join('');
+        `;
+        }).join('');
 
         return `
             <!DOCTYPE html>

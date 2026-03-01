@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 /**
  * Manages Coolify extension configuration with broad editor compatibility:
@@ -20,6 +23,41 @@ export class ConfigurationManager {
     context.globalState.setKeysForSync([ConfigurationManager.SERVER_URL_KEY]);
   }
 
+  // ─── CLI Config Bridge ───────────────────────────────────────────────────────
+
+  /**
+   * Attempts to securely read the coolify-cli config.json to perform "Zero-Config" setup.
+   * Returns { url, token } if successful, otherwise undefined.
+   */
+  private async getCliConfig(): Promise<{ url: string; token: string } | undefined> {
+    try {
+      // CLI Config path depending on OS
+      const isWindows = os.platform() === 'win32';
+      const configPath = isWindows
+        ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'coolify', 'config.json')
+        : path.join(os.homedir(), '.config', 'coolify', 'config.json');
+
+      if (fs.existsSync(configPath)) {
+        const fileContent = await fs.promises.readFile(configPath, 'utf-8');
+        const json = JSON.parse(fileContent);
+
+        // Return default context (or whatever the active context is styled as)
+        // Assume context 'default' based on CLI structure reports
+        const contextConfig = json.contexts?.default || json;
+
+        if (contextConfig && contextConfig.token && contextConfig.host) {
+          return {
+            url: contextConfig.host.replace(/\/$/, ''),
+            token: contextConfig.token
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[Coolify] Failed to parse coolify-cli config.json:', e);
+    }
+    return undefined;
+  }
+
   // ─── Public API ────────────────────────────────────────────────────────────
 
   async isConfigured(): Promise<boolean> {
@@ -33,6 +71,12 @@ export class ConfigurationManager {
    * Priority: workspace settings (team .vscode/settings.json) → globalState (wizard setup)
    */
   async getServerUrl(): Promise<string | undefined> {
+    // 0. Auto-detect shared CLI Config
+    const cliConfig = await this.getCliConfig();
+    if (cliConfig?.url) {
+      return cliConfig.url;
+    }
+
     // 1. Workspace / user settings (supports team sharing via .vscode/settings.json)
     const wsUrl = vscode.workspace.getConfiguration('coolify').get<string>('serverUrl');
     if (wsUrl && wsUrl.trim() !== '') {
@@ -45,6 +89,12 @@ export class ConfigurationManager {
 
   /** Gets the stored API token, from SecretStorage or fallback. */
   async getToken(): Promise<string | undefined> {
+    // 0. Auto-detect shared CLI config
+    const cliConfig = await this.getCliConfig();
+    if (cliConfig?.token) {
+      return cliConfig.token;
+    }
+
     if (await this.hasSecretsSupport()) {
       return this.context.secrets.get(ConfigurationManager.TOKEN_KEY);
     }

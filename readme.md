@@ -2,7 +2,7 @@
 
 <img src="public/logo.png" alt="Coolify Deployments" width="110" />
 
-# Coolify Deployments 2.5 🚀
+# Coolify Deployments 2.6 🚀
 
 ### The fully-intelligent VS Code extension for [Coolify](https://coolify.io) — deploy, monitor and manage your self-hosted infrastructure automatically
 
@@ -49,6 +49,13 @@ Click **Deploy Current Project** and watch the magic:
 3. Triggers the deployment.
 4. Opens an Output Channel streaming the **live Docker build logs**.
 5. Upon success, seamlessly transitions into tailing your **live application runtime logs**.
+
+### 💻 Hybrid CLI Integration
+
+Coolify Deployments works beautifully out-of-the-box, but it becomes even more powerful if you have the official [coolify-cli](https://github.com/coollabsio/coolify-cli) installed on your machine!
+
+- **Zero-Config Authentication:** If you're logged into the CLI, the extension instantly reads your `~/.config/coolify/config.json` file. You won't have to enter a Server URL or API Token at all.
+- **Native Log Streaming:** When clicking "View Live App Logs", the extension automatically detects the `coolify` binary and spawns a native terminal tab. This offloads streaming to the CLI, giving you interactive colorization and real-time Socket power.
 
 ---
 

@@ -1,12 +1,1799 @@
-"use strict";var be=Object.create;var q=Object.defineProperty;var Ce=Object.getOwnPropertyDescriptor;var Se=Object.getOwnPropertyNames;var Ae=Object.getPrototypeOf,De=Object.prototype.hasOwnProperty;var ke=(s,e)=>{for(var t in e)q(s,t,{get:e[t],enumerable:!0})},te=(s,e,t,i)=>{if(e&&typeof e=="object"||typeof e=="function")for(let n of Se(e))!De.call(s,n)&&n!==t&&q(s,n,{get:()=>e[n],enumerable:!(i=Ce(e,n))||i.enumerable});return s};var A=(s,e,t)=>(t=s!=null?be(Ae(s)):{},te(e||!s||!s.__esModule?q(t,"default",{value:s,enumerable:!0}):t,s)),$e=s=>te(q({},"__esModule",{value:!0}),s);var qe={};ke(qe,{activate:()=>Be,deactivate:()=>je});module.exports=$e(qe);var k=A(require("vscode"));var W=A(require("vscode")),V=class s{constructor(e){this.context=e;e.globalState.setKeysForSync([s.SERVER_URL_KEY])}static SERVER_URL_KEY="coolify.serverUrl";static TOKEN_KEY="coolify.token";static TOKEN_FALLBACK_KEY="coolify.token.fallback";static SECRETS_SUPPORTED_KEY="coolify.secretsSupported";secretsAvailable;async isConfigured(){let e=await this.getServerUrl(),t=await this.getToken();return!!e&&!!t}async getServerUrl(){let e=W.workspace.getConfiguration("coolify").get("serverUrl");return e&&e.trim()!==""?e.trim():this.context.globalState.get(s.SERVER_URL_KEY)}async getToken(){return await this.hasSecretsSupport()?this.context.secrets.get(s.TOKEN_KEY):this.context.globalState.get(s.TOKEN_FALLBACK_KEY)}async setServerUrl(e){await this.context.globalState.update(s.SERVER_URL_KEY,e)}async setToken(e){await this.hasSecretsSupport()?await this.context.secrets.store(s.TOKEN_KEY,e):(await this.context.globalState.update(s.TOKEN_FALLBACK_KEY,e),W.window.showWarningMessage("Coolify: Your editor does not support secure secret storage. Your API token has been stored without encryption. Consider upgrading your editor or using a `.env` file."))}async clearConfiguration(){await this.context.globalState.update(s.SERVER_URL_KEY,void 0),await this.hasSecretsSupport()?await this.context.secrets.delete(s.TOKEN_KEY):await this.context.globalState.update(s.TOKEN_FALLBACK_KEY,void 0)}async hasSecretsSupport(){if(this.secretsAvailable!==void 0)return this.secretsAvailable;try{await this.context.secrets.get("__coolify_probe__"),this.secretsAvailable=!0}catch{this.secretsAvailable=!1,console.warn("[Coolify] SecretStorage not available in this editor \u2014 using plaintext fallback.")}return this.secretsAvailable}};var P=A(require("vscode")),ie=A(require("child_process")),ne=A(require("util"));var g=class{constructor(e,t){this.baseUrl=e;this.token=t}async fetchWithAuth(e,t){let i=new AbortController,n=setTimeout(()=>i.abort(),15e3);try{let a=await fetch(`${this.baseUrl}${e}`,{...t,headers:{Authorization:`Bearer ${this.token}`,"Content-Type":"application/json",...t?.headers||{}},signal:i.signal});if(!a.ok)throw new Error(`API request failed (${a.status}): ${a.statusText}`);return await a.json()}finally{clearTimeout(n)}}async fetchVoid(e,t="GET"){let i=new AbortController,n=setTimeout(()=>i.abort(),15e3);try{let a=await fetch(`${this.baseUrl}${e}`,{method:t,headers:{Authorization:`Bearer ${this.token}`},signal:i.signal});if(!a.ok)throw new Error(`Request failed (${a.status}): ${a.statusText}`);return!0}finally{clearTimeout(n)}}async getApplications(){return this.fetchWithAuth("/api/v1/applications")}async getApplicationsByEnvironment(e,t){return(await this.fetchWithAuth(`/api/v1/projects/${e}/environment/${t}`)).applications??[]}async getApplicationLogs(e){let t=new AbortController,i=setTimeout(()=>t.abort(),15e3);try{let n=await fetch(`${this.baseUrl}/api/v1/applications/${e}/logs`,{headers:{Authorization:`Bearer ${this.token}`},signal:t.signal});if(!n.ok)throw new Error(`Failed to fetch logs: ${n.statusText}`);return await n.text()}finally{clearTimeout(i)}}async getApplication(e){return this.fetchWithAuth(`/api/v1/applications/${e}`)}async startApplication(e){return this.fetchVoid(`/api/v1/applications/${e}/start`)}async stopApplication(e){return this.fetchVoid(`/api/v1/applications/${e}/stop`)}async restartApplication(e){return this.fetchVoid(`/api/v1/applications/${e}/restart`)}async getDeployments(){return this.fetchWithAuth("/api/v1/deployments")}async getApplicationDeployments(e){return this.fetchWithAuth(`/api/v1/applications/${e}/deployments`)}async startDeployment(e){return(await this.fetchWithAuth(`/api/v1/deploy?uuid=${e}`)).deploy_uuid}async getDeployment(e){return this.fetchWithAuth(`/api/v1/deployments/${e}`)}async cancelDeployment(e){return this.fetchVoid(`/api/v1/deployments/${e}/cancel`,"POST")}async getProjects(){return this.fetchWithAuth("/api/v1/projects")}async getProjectEnvironments(e){return(await this.fetchWithAuth(`/api/v1/projects/${e}`)).environments??[]}async getServers(){return this.fetchWithAuth("/api/v1/servers")}async getDatabases(){return this.fetchWithAuth("/api/v1/databases")}async startDatabase(e){return this.fetchVoid(`/api/v1/databases/${e}/start`)}async stopDatabase(e){return this.fetchVoid(`/api/v1/databases/${e}/stop`)}async createDatabaseBackup(e){return this.fetchVoid(`/api/v1/databases/${e}/backup`,"POST")}async verifyToken(){let e=new AbortController,t=setTimeout(()=>e.abort(),5e3);try{return(await fetch(`${this.baseUrl}/api/v1/version`,{headers:{Authorization:`Bearer ${this.token}`},signal:e.signal})).ok}catch{return!1}finally{clearTimeout(t)}}async testConnection(){let e=new AbortController,t=setTimeout(()=>e.abort(),5e3);try{return(await fetch(`${this.baseUrl}/api/health`,{signal:e.signal})).ok}catch{return!1}finally{clearTimeout(t)}}async getVersion(){let e=await this.fetchWithAuth("/api/v1/version");return typeof e=="string"?e:e.version??"unknown"}};var Pe=ne.promisify(ie.exec);function oe(s){if(!s)return null;let e=s.trim().replace(/\.git$/,""),t=e.match(/[:/]([^/]+\/[^/]+)$/);return t&&t[1]?t[1].toLowerCase():e.toLowerCase()}var F=class{constructor(e){this.configManager=e}items=new Map;pollInterval;isDisposed=!1;isRefreshing=!1;cachedRemotes=null;matchedApps=[];getMatchedApps(){return this.matchedApps}async getWorkspaceGitRemotes(){if(this.cachedRemotes)return this.cachedRemotes;let e=new Set,t=P.workspace.workspaceFolders;if(!t)return e;for(let i of t)try{let{stdout:n}=await Pe("git config --get remote.origin.url",{cwd:i.uri.fsPath}),a=oe(n);a&&e.add(a)}catch{}return this.cachedRemotes=e,e}async initialize(){await this.refreshStatusBar(),this.startPolling()}startPolling(){if(this.pollInterval)return;let e=P.workspace.getConfiguration("coolify").get("refreshInterval",5e3);this.pollInterval=setInterval(async()=>{this.isDisposed||await this.refreshStatusBar()},e)}async refreshStatusBar(){if(!(this.isDisposed||this.isRefreshing)){this.isRefreshing=!0;try{if(!await this.configManager.isConfigured()){this.clearItems();return}let t=await this.configManager.getServerUrl(),i=await this.configManager.getToken();if(!t||!i)return;let a=await new g(t,i).getApplications(),o=P.workspace.getConfiguration("coolify").get("defaultApplication"),c=[];if(o)c=a.filter(l=>l.id===o||l.uuid===o);else{let l=await this.getWorkspaceGitRemotes();l.size>0&&(c=a.filter(p=>{let f=oe(p.git_repository);return f&&l.has(f)}))}this.matchedApps=c;let r=c.filter(l=>l.status&&l.status.toLowerCase()!=="unknown"),d=new Set;for(let l of r){let p=l.uuid||l.id;if(!p)continue;d.add(p);let f=this.items.get(p);f||(f=P.window.createStatusBarItem(P.StatusBarAlignment.Left,100),this.items.set(p,f)),f.name=`Coolify \u2014 ${l.name}`;let C=this.getStatusIcon(l.status);f.text=`${C} ${l.name}: ${this.formatStatus(l.status)}`,f.tooltip=new P.MarkdownString(`**Coolify App: ${l.name}**
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Status: \`${l.status}\`
+// src/extension.ts
+var extension_exports = {};
+__export(extension_exports, {
+  activate: () => activate,
+  deactivate: () => deactivate
+});
+module.exports = __toCommonJS(extension_exports);
+var vscode14 = __toESM(require("vscode"));
 
-Click to view logs`),f.command={title:"View Logs",command:"coolify.viewApplicationLogs",arguments:[{id:p,name:l.name}]},this.applyStatusBackground(f,l.status),f.show()}for(let[l,p]of this.items.entries())d.has(l)||(p.dispose(),this.items.delete(l))}catch(e){console.error("StatusBarManager: Failed to refresh:",e)}finally{this.isRefreshing=!1}}}getStatusIcon(e){let t=e?.toLowerCase()||"";return t.includes("running")?"$(vm-running)":t.includes("stopped")||t.includes("exited")?"$(vm-outline)":t.includes("deploying")||t.includes("starting")?"$(loading~spin)":t.includes("error")||t.includes("failed")?"$(error)":"$(circle-outline)"}formatStatus(e){let t=e?.toLowerCase()||"";return!t||t==="unknown"?"Unknown":t.includes("running")?"Running":t.includes("stopped")||t.includes("exited")?"Stopped":t.includes("deploying")||t.includes("starting")?"Deploying":t.includes("error")||t.includes("failed")?"Error":e.charAt(0).toUpperCase()+e.slice(1).replace(/_/g," ")}applyStatusBackground(e,t){let i=t?.toLowerCase()||"";i.includes("error")||i.includes("failed")?e.backgroundColor=new P.ThemeColor("statusBarItem.errorBackground"):i.includes("deploying")||i.includes("starting")?e.backgroundColor=new P.ThemeColor("statusBarItem.warningBackground"):e.backgroundColor=void 0}clearItems(){for(let e of this.items.values())e.dispose();this.items.clear()}dispose(){this.isDisposed=!0,this.pollInterval&&clearInterval(this.pollInterval),this.clearItems()}};var u=A(require("vscode"));var w=class extends u.TreeItem{constructor(t,i,n,a,o){super(t,i);this.kind=n;this.rawData=a;this.parentId=o;this.applyKindConfig()}applyKindConfig(){switch(this.kind){case"project":this.iconPath=new u.ThemeIcon("folder"),this.contextValue="coolifyProject";break;case"environment":this.iconPath=new u.ThemeIcon("layers"),this.contextValue="coolifyEnvironment";break;case"application":{let t=this.rawData;this.iconPath=this.getAppIcon(t?.status),this.contextValue=`coolifyApp_${t?.status?.toLowerCase()??"unknown"}`,t?.fqdn&&(this.description=t.fqdn.replace(/^https?:\/\//,"")),this.tooltip=this.buildAppTooltip(t);break}case"server":{let t=this.rawData,i=t?.settings?.is_reachable;this.iconPath=new u.ThemeIcon(i?"server-process":"server-environment"),this.contextValue="coolifyServer",this.description=t?.ip;break}case"database":{let t=this.rawData;this.iconPath=new u.ThemeIcon("database"),this.contextValue=`coolifyDatabase_${t?.status?.toLowerCase()??"unknown"}`,this.description=t?.type;break}case"category":this.iconPath=new u.ThemeIcon("list-unordered"),this.contextValue="coolifyCategory";break;case"loading":this.iconPath=new u.ThemeIcon("loading~spin"),this.contextValue="coolifyLoading";break;case"empty":this.iconPath=new u.ThemeIcon("info"),this.contextValue="coolifyEmpty";break}}getAppIcon(t){switch(t?.toLowerCase()){case"running":return new u.ThemeIcon("vm-running",new u.ThemeColor("charts.green"));case"stopped":case"exited":return new u.ThemeIcon("vm-outline",new u.ThemeColor("charts.gray"));case"deploying":case"starting":return new u.ThemeIcon("sync~spin",new u.ThemeColor("charts.yellow"));case"error":case"failed":return new u.ThemeIcon("error",new u.ThemeColor("charts.red"));default:return new u.ThemeIcon("circle-outline")}}buildAppTooltip(t){if(!t)return new u.MarkdownString("No application data");let i=[`**${t.name}**`,"",`Status: \`${t.status??"unknown"}\``];return t.git_repository&&i.push(`Repo: \`${t.git_repository}\``),t.git_branch&&i.push(`Branch: \`${t.git_branch}\``),t.fqdn&&i.push(`URL: [${t.fqdn}](${t.fqdn})`),new u.MarkdownString(i.join(`
-`))}},K=class{constructor(e){this.configManager=e}_onDidChangeTreeData=new u.EventEmitter;onDidChangeTreeData=this._onDidChangeTreeData.event;refreshInterval;isDisposed=!1;service;cachedProjects=[];cachedApplications=[];cachedServers=[];cachedDatabases=[];isConfigured=!1;async initialize(){await this.loadData(),this.startAutoRefresh()}startAutoRefresh(){let e=u.workspace.getConfiguration("coolify").get("refreshInterval",5e3);this.refreshInterval=setInterval(()=>{this.isDisposed||this.loadData().catch(console.error)},e)}async getService(){let e=await this.configManager.getServerUrl(),t=await this.configManager.getToken();return!e||!t?null:(this.service=new g(e,t),this.service)}async loadData(){if(this.isConfigured=await this.configManager.isConfigured(),!this.isConfigured){this.refresh();return}try{let e=await this.getService();if(!e)return;let[t,i,n,a]=await Promise.allSettled([e.getProjects(),e.getApplications(),e.getServers(),e.getDatabases()]);this.cachedProjects=t.status==="fulfilled"?t.value:[],this.cachedApplications=i.status==="fulfilled"?i.value:[],this.cachedServers=n.status==="fulfilled"?n.value:[],this.cachedDatabases=a.status==="fulfilled"?a.value:[],this.refresh()}catch(e){console.error("CoolifyTreeDataProvider: Failed to load data:",e)}}refresh(){this._onDidChangeTreeData.fire()}getTreeItem(e){return e}async getChildren(e){if(!this.isConfigured){let t=new w("Not signed in \u2014 click to connect",u.TreeItemCollapsibleState.None,"empty");return t.command={command:"coolify.login",title:"Sign In"},[t]}if(!e)return[new w("Projects",u.TreeItemCollapsibleState.Expanded,"category"),new w("Applications",u.TreeItemCollapsibleState.Collapsed,"category"),new w("Servers",u.TreeItemCollapsibleState.Collapsed,"category"),new w("Databases",u.TreeItemCollapsibleState.Collapsed,"category")];if(e.kind==="category")return this.getCategoryChildren(e.label);if(e.kind==="project"){let t=e.rawData;return!t.environments||t.environments.length===0?[new w("No environments",u.TreeItemCollapsibleState.None,"empty")]:t.environments.map(i=>new w(i.name,u.TreeItemCollapsibleState.Collapsed,"environment",i,String(t.uuid)))}if(e.kind==="environment"){let t=e.rawData,i=this.cachedApplications.filter(n=>t.applications?t.applications.some(a=>a.id===n.id):!0);return i.length===0?[new w("No applications",u.TreeItemCollapsibleState.None,"empty")]:i.map(n=>new w(n.name,u.TreeItemCollapsibleState.None,"application",n))}return[]}getCategoryChildren(e){switch(e){case"Projects":return this.cachedProjects.length===0?[new w("No projects found",u.TreeItemCollapsibleState.None,"empty")]:this.cachedProjects.map(t=>new w(t.name,u.TreeItemCollapsibleState.Collapsed,"project",t));case"Applications":return this.cachedApplications.length===0?[new w("No applications found",u.TreeItemCollapsibleState.None,"empty")]:this.cachedApplications.map(t=>new w(t.name,u.TreeItemCollapsibleState.None,"application",t));case"Servers":return this.cachedServers.length===0?[new w("No servers found",u.TreeItemCollapsibleState.None,"empty")]:this.cachedServers.map(t=>new w(t.name,u.TreeItemCollapsibleState.None,"server",t));case"Databases":return this.cachedDatabases.length===0?[new w("No databases found",u.TreeItemCollapsibleState.None,"empty")]:this.cachedDatabases.map(t=>new w(t.name,u.TreeItemCollapsibleState.None,"database",t));default:return[]}}getService_(){return this.service}getCachedApplications(){return this.cachedApplications}getCachedDatabases(){return this.cachedDatabases}dispose(){this.isDisposed=!0,this.refreshInterval&&clearInterval(this.refreshInterval),this._onDidChangeTreeData.dispose()}};var b=A(require("vscode"));var m=A(require("vscode"));var se=require("child_process"),H=require("child_process"),X;function Te(){return X||(X=m.window.createOutputChannel("Coolify: Deploy Pipeline")),X}function M(s,e){s.appendLine(""),s.appendLine(`${"\u2500".repeat(60)}`),s.appendLine(`  ${e}`),s.appendLine(`${"\u2500".repeat(60)}`)}function v(){return new Date().toLocaleTimeString()}function Ie(s,e){return new Promise(t=>{M(e,"\u{1F500}  STAGE 1 \u2014 Git Push"),e.appendLine(`[${v()}] Running: git push origin HEAD`);let i=(0,se.spawn)("git",["push","origin","HEAD"],{cwd:s});i.stdout.on("data",n=>{e.append(n.toString())}),i.stderr.on("data",n=>{e.append(n.toString())}),i.on("close",n=>{n===0?(e.appendLine(`[${v()}] \u2705 Git push succeeded.`),t(!0)):(e.appendLine(`[${v()}] \u274C Git push exited with code ${n}.`),t(!1))}),i.on("error",n=>{e.appendLine(`[${v()}] \u274C Git push error: ${n.message}`),t(!1)})})}async function xe(s,e,t,i){M(i,"\u2705  STAGE 2 \u2014 Commit Verification"),i.appendLine(`[${v()}] Waiting for Coolify to detect commit: ${t.slice(0,8)}`);let n=20;for(let a=0;a<n;a++){try{let c=(await s.getApplication(e)).git_commit_sha;if(i.appendLine(`[${v()}] Attempt ${a+1}/${n} \u2014 Coolify SHA: ${c?.slice(0,8)??"unknown"}`),c&&t.startsWith(c)||c&&c.startsWith(t.slice(0,8))){i.appendLine(`[${v()}] \u2705 Commit verified on Coolify!`);return}}catch(o){i.appendLine(`[${v()}] (poll error: ${o instanceof Error?o.message:String(o)})`)}await new Promise(o=>setTimeout(o,3e3))}i.appendLine(`[${v()}] \u26A0\uFE0F  Commit not yet visible on Coolify \u2014 continuing anyway (webhook may handle it).`)}async function Le(s,e,t,i,n){M(i,"\u{1F680}  STAGE 3 \u2014 Triggering Deployment");let a;try{a=await s.startDeployment(e)}catch(d){return i.appendLine(`[${v()}] \u274C Failed to start deployment: ${d instanceof Error?d.message:String(d)}`),!1}if(!a)return i.appendLine(`[${v()}] \u26A0\uFE0F  Deployment started but no UUID returned \u2014 cannot stream logs.`),m.window.showInformationMessage(`\u{1F680} Deployment started for ${t}`),!0;i.appendLine(`[${v()}] Deploy UUID: ${a}`),M(i,"\u{1F4CB}  STAGE 4 \u2014 Live Deploy Logs"),i.appendLine(`[${v()}] Polling for build logs...`);let o=0,c=!1,r=!1;for(;!c&&!n.isCancellationRequested;){await new Promise(d=>setTimeout(d,3e3));try{let d=await s.getDeployment(a);if(!d)continue;let l=d;if(l.logs&&typeof l.logs=="string"){let f=l.logs;f.length>o&&(i.append(f.substring(o)),o=f.length)}let p=d.status??"";if(p==="finished"||p==="failed"||p==="error"){c=!0,r=p==="finished";let f=r?"\u2705":"\u274C";i.appendLine(`
-[${v()}] ${f} Deployment ${p.toUpperCase()}.`),r?m.window.showInformationMessage(`\u2705 Deployment successful: ${t}`):m.window.showErrorMessage(`\u274C Deployment failed: ${t} (${p})`)}}catch(d){i.appendLine(`[${v()}] (log poll error: ${d instanceof Error?d.message:String(d)})`)}}return r}async function Ee(s,e,t,i,n){M(i,"\u{1F4E1}  STAGE 5 \u2014 Live App Logs"),i.appendLine(`[${v()}] Tailing app logs for ${t}\u2026 (cancel the progress notification to stop)`);let a=0;for(;!n.isCancellationRequested;){try{let o=await s.getApplicationLogs(e);o&&o.length>a&&(i.append(o.substring(a)),a=o.length)}catch(o){i.appendLine(`[${v()}] (app log fetch error: ${o instanceof Error?o.message:String(o)})`)}await new Promise(o=>setTimeout(o,3e3))}i.appendLine(`
-[${v()}] \u{1F6D1} App log tailing stopped.`)}async function N(s,e,t="Application"){try{let i=await s.getServerUrl(),n=await s.getToken();if(!i||!n)throw new Error("Coolify is not configured. Please sign in.");let a=new g(i,n),o=Te();o.clear(),o.show(!0),o.appendLine(`\u2554${"\u2550".repeat(58)}\u2557`),o.appendLine(`\u2551  Coolify Deploy Pipeline \u2014 ${t.padEnd(28)} \u2551`),o.appendLine(`\u2551  Started: ${v().padEnd(46)} \u2551`),o.appendLine(`\u255A${"\u2550".repeat(58)}\u255D`);let c,r=m.workspace.workspaceFolders;if(r&&r.length>0){let d=r[0].uri.fsPath;try{if((0,H.execSync)("git status --porcelain",{cwd:d}).toString().trim().length>0&&await m.window.showWarningMessage("You have uncommitted changes. Only committed files will be pushed to Coolify. Proceed anyway?","Proceed","Cancel")!=="Proceed"){o.appendLine(`[${v()}] \u{1F6D1} Deployment cancelled by user (uncommitted changes).`);return}}catch{o.appendLine(`[${v()}] \u26A0\uFE0F Could not check git status.`)}try{let p=(0,H.execSync)("git rev-parse --abbrev-ref HEAD",{cwd:d}).toString().trim(),C=(await a.getApplication(e))?.git_branch;if(C&&p!==C&&await m.window.showWarningMessage(`Coolify expects branch '${C}', but your local branch is '${p}'. Your push might not trigger the correct deployment. Proceed anyway?`,"Proceed","Cancel")!=="Proceed"){o.appendLine(`[${v()}] \u{1F6D1} Deployment cancelled by user (branch mismatch).`);return}}catch(p){o.appendLine(`[${v()}] \u26A0\uFE0F Could not verify git branch match: ${p instanceof Error?p.message:String(p)}`)}try{c=(0,H.execSync)("git rev-parse HEAD",{cwd:d}).toString().trim()}catch{o.appendLine(`[${v()}] \u26A0\uFE0F  Could not read local git SHA.`)}if(!await m.window.withProgress({location:m.ProgressLocation.Notification,title:`[Coolify] ${t}: Pushing to GitHub\u2026`,cancellable:!1},()=>Ie(d,o))){m.window.showErrorMessage(`\u274C Git push failed for ${t}. Check the Coolify Deploy Pipeline output for details.`),o.show(!0);return}c&&await m.window.withProgress({location:m.ProgressLocation.Notification,title:`[Coolify] ${t}: Verifying commit on Coolify\u2026`,cancellable:!1},()=>xe(a,e,c,o))}else M(o,"\u{1F500}  STAGE 1 \u2014 Git Push"),o.appendLine(`[${v()}] \u23ED  No workspace open \u2014 skipping git push.`),M(o,"\u2705  STAGE 2 \u2014 Commit Verification"),o.appendLine(`[${v()}] \u23ED  Skipped (no workspace).`);await m.window.withProgress({location:m.ProgressLocation.Notification,title:`[Coolify] ${t}: Deploying\u2026`,cancellable:!0},async(d,l)=>{await Le(a,e,t,o,l)&&await Ee(a,e,t,o,l)})}catch(i){m.window.showErrorMessage(`Deploy pipeline error: ${i instanceof Error?i.message:"Unknown error"}`)}}async function ae(s,e){try{let t=e.getMatchedApps();if(!t||t.length===0){m.window.showInformationMessage("No Coolify apps found matching the current workspace.");return}if(t.length===1){let n=t[0];await N(s,n.uuid||n.id||"",n.name);return}let i=await m.window.showQuickPick(t.map(n=>({label:n.name,description:n.status,detail:n.fqdn?`\u{1F310} ${n.fqdn}`:void 0,id:n.uuid||n.id||""})),{placeHolder:"Select an application to deploy from current workspace",title:"Coolify: Deploy Current Project"});i&&await N(s,i.id,i.label)}catch(t){m.window.showErrorMessage(t instanceof Error?t.message:"Failed to start deployment")}}async function re(s){try{let e=await s.getServerUrl(),t=await s.getToken();if(!e||!t)throw new Error("Extension not configured properly");let i=new g(e,t),a=(await i.getDeployments()).filter(c=>c.status==="in_progress"||c.status==="queued");if(!a||a.length===0){m.window.showInformationMessage("No active deployments found");return}let o=await m.window.showQuickPick(a.map(c=>({label:`Cancel: ${c.application_name||"Deployment"}`,description:c.status,detail:c.commit_message||`Deployment ID: ${c.id}`,id:c.id})),{placeHolder:"Select a deployment to cancel",title:"Cancel Deployment"});o&&m.window.withProgress({location:m.ProgressLocation.Notification,title:`Canceling ${o.label}\u2026`,cancellable:!1},async()=>{await i.cancelDeployment(o.id),m.window.showInformationMessage("\u2705 Deployment canceled.")})}catch(e){m.window.showErrorMessage(e instanceof Error?e.message:"Failed to cancel deployment")}}var L=A(require("vscode"));async function Z(s,e,t,i,n){try{let a=await s.getServerUrl(),o=await s.getToken();if(!a||!o)throw new Error("Extension not configured properly");let c=new g(a,o),r=i,d=n;if(!r){let l=await c.getApplications();if(!l||l.length===0){L.window.showInformationMessage("No applications found");return}let p=await L.window.showQuickPick(l.map(f=>({label:f.name,description:f.status,detail:`Status: ${f.status}`,id:f.uuid||f.id||""})),{placeHolder:`Select an application to ${e}`,title:t});if(!p)return;r=p.id,d=p.label}await L.window.withProgress({location:L.ProgressLocation.Notification,title:`${e}ing ${d}...`,cancellable:!1},async()=>{e==="start"?await c.startApplication(r):e==="stop"?await c.stopApplication(r):await c.restartApplication(r),L.workspace.getConfiguration("coolify").get("enableNotifications",!0)&&L.window.showInformationMessage(`\u2705 Successfully ${e}ed ${d}`)})}catch(a){L.window.showErrorMessage(a instanceof Error?a.message:`Failed to ${e} application`)}}async function ce(s,e,t,i){await Z(e,"start","Start Application",t,i)}async function le(s,e,t,i){await Z(e,"stop","Stop Application",t,i)}async function de(s,e,t,i){await Z(e,"restart","Restart Application",t,i)}var $=A(require("vscode"));async function pe(s,e,t,i,n){let a=i,o=n||"Database";if(!a){let l=await s.getServerUrl(),p=await s.getToken();if(!l||!p){$.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");return}let f=new g(l,p),C=[];if(await $.window.withProgress({location:$.ProgressLocation.Notification,title:"Fetching databases..."},async()=>{C=await f.getDatabases()}),!C||C.length===0){$.window.showInformationMessage("No databases found.");return}let T=await $.window.showQuickPick(C.map(S=>({label:S.name,description:S.status,detail:S.type,id:S.uuid})),{placeHolder:`Select a database to ${e}`,title:t});if(!T)return;a=T.id,o=T.label}if(!a)return;let c=await s.getServerUrl(),r=await s.getToken();if(!c||!r){$.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");return}let d=new g(c,r);await $.window.withProgress({location:$.ProgressLocation.Notification,title:`${t} for ${o}...`,cancellable:!1},async()=>{try{e==="start"?await d.startDatabase(a):e==="stop"&&await d.stopDatabase(a),$.workspace.getConfiguration("coolify").get("enableNotifications",!0)&&$.window.showInformationMessage(`\u2705 ${o} ${e} command sent successfully`)}catch(l){$.window.showErrorMessage(`Failed to ${e} ${o}`),console.error(`Error in database action (${e}):`,l)}})}async function Y(s,e,t,i){await pe(e,"start","Start Database",t,i)}async function G(s,e,t,i){await pe(e,"stop","Stop Database",t,i)}var y=A(require("vscode"));var ee;function ue(){return ee||(ee=y.window.createOutputChannel("Coolify Logs")),ee}async function B(s,e){try{let t=await s.getServerUrl(),i=await s.getToken();if(!t||!i)throw new Error("Extension not configured properly");let n=new g(t,i),a=e?.id,o=e?.name;if(!a){let r=await n.getApplications();if(!r||r.length===0){y.window.showInformationMessage("No applications found");return}let d=await y.window.showQuickPick(r.map(l=>({label:l.name,description:l.status,detail:l.fqdn,id:l.uuid||l.id||""})),{placeHolder:"Select an application to view logs",title:"Coolify: View Logs"});if(!d)return;a=d.id,o=d.label}let c=ue();c.clear(),c.show(!0),c.appendLine(`\u2500\u2500 Coolify Logs \u2014 ${o} \u2500\u2500`),c.appendLine(`Fetching logs from ${t}...`),c.appendLine(""),await y.window.withProgress({location:y.ProgressLocation.Notification,title:`Fetching logs for ${o}...`,cancellable:!1},async()=>{let r=await n.getApplicationLogs(a);c.appendLine(r||"(No log output)")})}catch(t){y.window.showErrorMessage(t instanceof Error?t.message:"Failed to fetch logs")}}async function j(s,e){try{let t=await s.getServerUrl(),i=await s.getToken();if(!t||!i)throw new Error("Extension not configured properly");let n=new g(t,i),a=e?.id,o=e?.name;if(!a){let r=await n.getApplications();if(!r||r.length===0){y.window.showInformationMessage("No applications found");return}let d=await y.window.showQuickPick(r.map(l=>({label:l.name,description:l.status,detail:l.fqdn,id:l.uuid||l.id||""})),{placeHolder:"Select an application to tail logs",title:"Coolify: Live App Logs"});if(!d)return;a=d.id,o=d.label}let c=ue();c.clear(),c.show(!0),c.appendLine(`\u2500\u2500 Coolify Live Logs \u2014 ${o} \u2500\u2500`),c.appendLine("Tailing logs\u2026 (cancel the progress notification to stop)"),c.appendLine(""),await y.window.withProgress({location:y.ProgressLocation.Notification,title:`[Coolify] Live logs: ${o}`,cancellable:!0},async(r,d)=>{let l=0;for(;!d.isCancellationRequested;){try{let p=await n.getApplicationLogs(a);p&&p.length>l&&(c.append(p.substring(l)),l=p.length)}catch(p){c.appendLine(`(fetch error: ${p instanceof Error?p.message:String(p)})`)}await new Promise(p=>setTimeout(p,3e3))}c.appendLine(`
-\u{1F6D1} Live log tail stopped.`)})}catch(t){y.window.showErrorMessage(t instanceof Error?t.message:"Failed to tail logs")}}async function z(s,e){try{let t=await s.getServerUrl(),i=await s.getToken();if(!t||!i)throw new Error("Extension not configured properly");let n=new g(t,i),a=e?.id,o=e?.name;if(!a){let c=await n.getDatabases();if(!c||c.length===0){y.window.showInformationMessage("No databases found");return}let r=await y.window.showQuickPick(c.map(d=>({label:d.name,description:d.type,detail:d.status,id:d.uuid})),{placeHolder:"Select a database to back up",title:"Coolify: Create Database Backup"});if(!r)return;a=r.id,o=r.label}await y.window.withProgress({location:y.ProgressLocation.Notification,title:`Creating backup for ${o}...`,cancellable:!1},async()=>{await n.createDatabaseBackup(a),y.window.showInformationMessage(`\u2705 Backup created for ${o}`)})}catch(t){y.window.showErrorMessage(t instanceof Error?t.message:"Failed to create backup")}}var h=A(require("vscode"));async function fe(s,e,t){let i,n="";if(t?.kind==="application"&&t.rawData){let o=t.rawData;i=o.fqdn,n=o.name}else{let o=e.getCachedApplications().filter(r=>!!r.fqdn);if(o.length===0){h.window.showInformationMessage("No applications have a public URL configured in Coolify.");return}let c=await h.window.showQuickPick(o.map(r=>({label:r.name,description:r.fqdn.replace(/^https?:\/\//,""),detail:`Status: ${r.status??"unknown"}`,fqdn:r.fqdn})),{placeHolder:"Select an application to open",title:"Open in Browser"});if(!c)return;i=c.fqdn,n=c.label}if(!i){h.window.showWarningMessage(`${n} has no public URL configured in Coolify.`);return}let a=h.Uri.parse(i.startsWith("http")?i:`https://${i}`);await h.env.openExternal(a)}async function ge(s,e){let t,i="";if(e?.rawData){let n=e.rawData;t=n.uuid??n.uuid,i=n.name??n.name}else{let n=s.getCachedApplications(),a=s.getCachedDatabases(),o=[...n.map(r=>({label:r.name,description:`App \xB7 ${r.uuid}`,uuid:r.uuid})),...a.map(r=>({label:r.name,description:`DB \xB7 ${r.uuid}`,uuid:r.uuid}))];if(o.length===0){h.window.showInformationMessage("No resources found to copy UUID from.");return}let c=await h.window.showQuickPick(o,{placeHolder:"Select a resource to copy its UUID",title:"Copy UUID"});if(!c)return;t=c.uuid,i=c.label}if(!t){h.window.showWarningMessage("UUID not available for this resource.");return}await h.env.clipboard.writeText(t),h.window.showInformationMessage(`\u2705 UUID for "${i}" copied to clipboard!`)}async function he(s,e){let t=e.getCachedApplications();if(t.length===0){h.window.showInformationMessage("No applications found. Try refreshing.");return}let i=r=>{switch(r?.toLowerCase()){case"running":return"\u{1F7E2}";case"stopped":case"exited":return"\u{1F534}";case"deploying":case"starting":return"\u{1F7E1}";case"error":case"failed":return"\u274C";default:return"\u26AA"}},n=await h.window.showQuickPick(t.map(r=>({label:`${i(r.status)} ${r.name}`,description:r.fqdn?.replace(/^https?:\/\//,"")??"",detail:`Status: ${r.status??"unknown"} \xB7 ${r.git_branch?`Branch: ${r.git_branch}`:""}`,uuid:r.uuid??r.id??"",name:r.name})),{placeHolder:"Type to filter, select to deploy immediately",title:"\u26A1 Quick Deploy",matchOnDescription:!0,matchOnDetail:!0});if(!n)return;let a=await s.getServerUrl(),o=await s.getToken();if(!a||!o){h.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");return}let c=new g(a,o);await h.window.withProgress({location:h.ProgressLocation.Notification,title:`\u{1F680} Deploying ${n.name}\u2026`,cancellable:!1},async()=>{try{await c.startDeployment(n.uuid),h.window.showInformationMessage(`\u{1F680} ${n.name} deployment started!`,"View Logs").then(r=>{r==="View Logs"&&h.commands.executeCommand("coolify.viewApplicationLogs",{id:n.uuid,name:n.name})})}catch(r){h.window.showErrorMessage(`Deploy failed: ${r instanceof Error?r.message:String(r)}`)}})}async function me(s){let e=await s.getServerUrl(),t=await s.getToken();if(!e||!t){h.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");return}await h.window.withProgress({location:h.ProgressLocation.Notification,title:"Testing Coolify connection\u2026",cancellable:!1},async()=>{try{let n=await new g(e,t).getVersion();h.window.showInformationMessage(`\u2705 Connected to Coolify v${n} at ${e.replace(/^https?:\/\//,"")}`)}catch(i){h.window.showErrorMessage(`\u274C Connection failed: ${i instanceof Error?i.message:String(i)}`)}})}var I=A(require("vscode"));function _e(s,e){if(!e||!s)return!1;let t=e.replace(/\.git$/,"").toLowerCase();for(let i of s){let n=i.fetchUrl?i.fetchUrl.replace(/\.git$/,"").toLowerCase():"",a=i.pushUrl?i.pushUrl.replace(/\.git$/,"").toLowerCase():"";if(n.endsWith(t)||a.endsWith(t))return!0}return!1}function ve(s,e,t){let i=I.extensions.getExtension("vscode.git");if(!i)return;let n=i.isActive?i.exports:null;if(!n)return;let a=n.getAPI(1);if(a?.repositories?.length)for(let o of a.repositories)s.subscriptions.push(o.state.onDidChange(async()=>{let c=o.state.HEAD?.name;if(!c||!await e.isConfigured())return;let d=t.getCachedApplications().filter(f=>f.git_branch===c&&f.status!=="deploying"&&_e(o.state.remotes,f.git_repository));if(d.length===0)return;let l=`coolify.gitAdvisor.${c}`,p=s.globalState.get(l)??0;if(!(Date.now()-p<3e4))if(await s.globalState.update(l,Date.now()),d.length===1){let f=d[0];await I.window.showInformationMessage(`Coolify: "${f.name}" is configured to deploy from \`${c}\`. Deploy now?`,"Deploy","Dismiss")==="Deploy"&&I.commands.executeCommand("coolify.startDeployment",{kind:"application",rawData:f})}else{let f=await e.getServerUrl(),C=await e.getToken();if(!f||!C)return;let T=await I.window.showQuickPick(d.map(S=>({label:S.name,description:S.fqdn??"",detail:`Branch: ${S.git_branch}`,uuid:S.uuid??S.id??""})),{title:`Deploy from ${c}?`,placeHolder:"Select an app to deploy (Escape to skip)"});if(T){let S=new g(f,C);await I.window.withProgress({location:I.ProgressLocation.Notification,title:`\u{1F680} Deploying ${T.label}\u2026`,cancellable:!1},async()=>{await S.startDeployment(T.uuid),I.window.showInformationMessage(`\u{1F680} ${T.label} deployment started!`)})}}}))}var D=A(require("vscode"));var Q=class s{constructor(e,t,i){this.configManager=i;this._panel=e,this._extensionUri=t,this._panel.onDidDispose(()=>this.dispose(),null,this._disposables),this._panel.onDidChangeViewState(n=>{this._panel.visible?this.startAutoRefresh():this.stopAutoRefresh()},null,this._disposables),this._panel.webview.onDidReceiveMessage(n=>{switch(n.type){case"refresh":this.updatePanelData();break;case"openLogs":D.commands.executeCommand("coolify.viewApplicationLogs",n.uuid,n.name);break;case"openLiveLogs":D.commands.executeCommand("coolify.viewApplicationLogsLive",n.uuid,n.name);break;case"deployApp":D.commands.executeCommand("coolify.startDeployment",n.uuid);break}},null,this._disposables),this.startAutoRefresh()}static currentPanel;_panel;_extensionUri;_disposables=[];_refreshInterval;static createOrShow(e,t){let i=D.window.activeTextEditor?D.window.activeTextEditor.viewColumn:void 0;if(s.currentPanel){s.currentPanel._panel.reveal(i);return}let n=D.window.createWebviewPanel("coolifyDashboard","Coolify Dashboard",i||D.ViewColumn.One,{enableScripts:!0,localResourceRoots:[D.Uri.joinPath(e,"public")]});s.currentPanel=new s(n,e,t)}startAutoRefresh(){this.stopAutoRefresh(),this.updatePanelData();let e=D.workspace.getConfiguration("coolify").get("refreshInterval",5e3);this._refreshInterval=setInterval(()=>this.updatePanelData(),e)}stopAutoRefresh(){this._refreshInterval&&(clearInterval(this._refreshInterval),this._refreshInterval=void 0)}async updatePanelData(){if(this._panel.visible)try{let e=await this.configManager.getServerUrl(),t=await this.configManager.getToken();if(!e||!t){this._panel.webview.html=this.getNotConfiguredHtml();return}let i=new g(e,t),[n,a,o]=await Promise.all([i.getServers(),i.getApplications(),i.getDatabases()]);this._panel.webview.html=this.getDashboardHtml(n,a,o,e)}catch(e){console.error("Coolify Dashboard error:",e),this._panel.webview.html=`<h1>Error Loading Dashboard</h1><p>${e instanceof Error?e.message:"Unknown error"}</p>`}}getNotConfiguredHtml(){return`
+// src/managers/ConfigurationManager.ts
+var vscode = __toESM(require("vscode"));
+var ConfigurationManager = class _ConfigurationManager {
+  constructor(context) {
+    this.context = context;
+    context.globalState.setKeysForSync([_ConfigurationManager.SERVER_URL_KEY]);
+  }
+  static SERVER_URL_KEY = "coolify.serverUrl";
+  static TOKEN_KEY = "coolify.token";
+  static TOKEN_FALLBACK_KEY = "coolify.token.fallback";
+  static SECRETS_SUPPORTED_KEY = "coolify.secretsSupported";
+  /** Whether SecretStorage is available in this editor. Detected on first use. */
+  secretsAvailable;
+  // ─── Public API ────────────────────────────────────────────────────────────
+  async isConfigured() {
+    const url = await this.getServerUrl();
+    const token = await this.getToken();
+    return !!url && !!token;
+  }
+  /**
+   * Gets the Coolify server URL.
+   * Priority: workspace settings (team .vscode/settings.json) → globalState (wizard setup)
+   */
+  async getServerUrl() {
+    const wsUrl = vscode.workspace.getConfiguration("coolify").get("serverUrl");
+    if (wsUrl && wsUrl.trim() !== "") {
+      return wsUrl.trim();
+    }
+    return this.context.globalState.get(_ConfigurationManager.SERVER_URL_KEY);
+  }
+  /** Gets the stored API token, from SecretStorage or fallback. */
+  async getToken() {
+    if (await this.hasSecretsSupport()) {
+      return this.context.secrets.get(_ConfigurationManager.TOKEN_KEY);
+    }
+    return this.context.globalState.get(_ConfigurationManager.TOKEN_FALLBACK_KEY);
+  }
+  /**
+   * Saves the server URL to globalState so the wizard-configured value
+   * is persisted independently of the workspace settings file.
+   */
+  async setServerUrl(url) {
+    await this.context.globalState.update(_ConfigurationManager.SERVER_URL_KEY, url);
+  }
+  /**
+   * Saves the API token. Uses SecretStorage when available,
+   * falls back to globalState with a warning for editors without SecretStorage
+   * (e.g., some builds of VSCodium or older Trae versions).
+   */
+  async setToken(token) {
+    if (await this.hasSecretsSupport()) {
+      await this.context.secrets.store(_ConfigurationManager.TOKEN_KEY, token);
+    } else {
+      await this.context.globalState.update(_ConfigurationManager.TOKEN_FALLBACK_KEY, token);
+      vscode.window.showWarningMessage(
+        "Coolify: Your editor does not support secure secret storage. Your API token has been stored without encryption. Consider upgrading your editor or using a `.env` file."
+      );
+    }
+  }
+  /** Clears all stored configuration. Called on reconfigure. */
+  async clearConfiguration() {
+    await this.context.globalState.update(_ConfigurationManager.SERVER_URL_KEY, void 0);
+    if (await this.hasSecretsSupport()) {
+      await this.context.secrets.delete(_ConfigurationManager.TOKEN_KEY);
+    } else {
+      await this.context.globalState.update(_ConfigurationManager.TOKEN_FALLBACK_KEY, void 0);
+    }
+  }
+  // ─── Internal ──────────────────────────────────────────────────────────────
+  /**
+   * Detects if context.secrets is supported in this editor.
+   * VSCodium and some forks may throw on first use — we detect this once and cache.
+   */
+  async hasSecretsSupport() {
+    if (this.secretsAvailable !== void 0) {
+      return this.secretsAvailable;
+    }
+    try {
+      await this.context.secrets.get("__coolify_probe__");
+      this.secretsAvailable = true;
+    } catch {
+      this.secretsAvailable = false;
+      console.warn("[Coolify] SecretStorage not available in this editor \u2014 using plaintext fallback.");
+    }
+    return this.secretsAvailable;
+  }
+};
+
+// src/managers/StatusBarManager.ts
+var vscode2 = __toESM(require("vscode"));
+var cp = __toESM(require("child_process"));
+var util = __toESM(require("util"));
+
+// src/services/CoolifyService.ts
+var CoolifyService = class {
+  constructor(baseUrl, token) {
+    this.baseUrl = baseUrl;
+    this.token = token;
+  }
+  // ─── Core Request Helper ─────────────────────────────────────────────────────
+  async fetchWithAuth(endpoint, options) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15e3);
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+          ...options?.headers || {}
+        },
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        throw new Error(`API request failed (${response.status}): ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async fetchVoid(endpoint, method = "GET") {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15e3);
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method,
+        headers: { Authorization: `Bearer ${this.token}` },
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status}): ${response.statusText}`);
+      }
+      return true;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  // ─── Applications ─────────────────────────────────────────────────────────────
+  async getApplications() {
+    return this.fetchWithAuth("/api/v1/applications");
+  }
+  async getApplicationsByEnvironment(projectUuid, environmentName) {
+    const envData = await this.fetchWithAuth(
+      `/api/v1/projects/${projectUuid}/environment/${environmentName}`
+    );
+    return envData.applications ?? [];
+  }
+  async getApplicationLogs(uuid) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15e3);
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/applications/${uuid}/logs`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch logs: ${response.statusText}`);
+      }
+      return await response.text();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async getApplication(uuid) {
+    return this.fetchWithAuth(`/api/v1/applications/${uuid}`);
+  }
+  async startApplication(uuid) {
+    return this.fetchVoid(`/api/v1/applications/${uuid}/start`);
+  }
+  async stopApplication(uuid) {
+    return this.fetchVoid(`/api/v1/applications/${uuid}/stop`);
+  }
+  async restartApplication(uuid) {
+    return this.fetchVoid(`/api/v1/applications/${uuid}/restart`);
+  }
+  // ─── Deployments ──────────────────────────────────────────────────────────────
+  async getDeployments() {
+    return this.fetchWithAuth("/api/v1/deployments");
+  }
+  async getApplicationDeployments(appUuid) {
+    return this.fetchWithAuth(`/api/v1/applications/${appUuid}/deployments`);
+  }
+  async startDeployment(uuid) {
+    const data = await this.fetchWithAuth(`/api/v1/deploy?uuid=${uuid}`);
+    return data.deploy_uuid;
+  }
+  async getDeployment(deployUuid) {
+    return this.fetchWithAuth(`/api/v1/deployments/${deployUuid}`);
+  }
+  async cancelDeployment(uuid) {
+    return this.fetchVoid(`/api/v1/deployments/${uuid}/cancel`, "POST");
+  }
+  // ─── Projects ─────────────────────────────────────────────────────────────────
+  async getProjects() {
+    return this.fetchWithAuth("/api/v1/projects");
+  }
+  async getProjectEnvironments(projectUuid) {
+    const project = await this.fetchWithAuth(
+      `/api/v1/projects/${projectUuid}`
+    );
+    return project.environments ?? [];
+  }
+  // ─── Servers ──────────────────────────────────────────────────────────────────
+  async getServers() {
+    return this.fetchWithAuth("/api/v1/servers");
+  }
+  // ─── Databases ────────────────────────────────────────────────────────────────
+  async getDatabases() {
+    return this.fetchWithAuth("/api/v1/databases");
+  }
+  async startDatabase(uuid) {
+    return this.fetchVoid(`/api/v1/databases/${uuid}/start`);
+  }
+  async stopDatabase(uuid) {
+    return this.fetchVoid(`/api/v1/databases/${uuid}/stop`);
+  }
+  async createDatabaseBackup(uuid) {
+    return this.fetchVoid(`/api/v1/databases/${uuid}/backup`, "POST");
+  }
+  // ─── Auth & Health ────────────────────────────────────────────────────────────
+  async verifyToken() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5e3);
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/version`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+        signal: controller.signal
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async testConnection() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5e3);
+    try {
+      const response = await fetch(`${this.baseUrl}/api/health`, {
+        signal: controller.signal
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async getVersion() {
+    const data = await this.fetchWithAuth("/api/v1/version");
+    if (typeof data === "string") {
+      return data;
+    }
+    return data.version ?? "unknown";
+  }
+};
+
+// src/managers/StatusBarManager.ts
+var exec2 = util.promisify(cp.exec);
+function normalizeGitUrl(url) {
+  if (!url) {
+    return null;
+  }
+  let cleanUrl = url.trim().replace(/\.git$/, "");
+  const match = cleanUrl.match(/[:/]([^/]+\/[^/]+)$/);
+  if (match && match[1]) {
+    return match[1].toLowerCase();
+  }
+  return cleanUrl.toLowerCase();
+}
+var StatusBarManager = class {
+  constructor(configManager) {
+    this.configManager = configManager;
+  }
+  items = /* @__PURE__ */ new Map();
+  pollInterval;
+  isDisposed = false;
+  isRefreshing = false;
+  cachedRemotes = null;
+  matchedApps = [];
+  getMatchedApps() {
+    return this.matchedApps;
+  }
+  async getWorkspaceGitRemotes() {
+    if (this.cachedRemotes) {
+      return this.cachedRemotes;
+    }
+    const remotes = /* @__PURE__ */ new Set();
+    const folders = vscode2.workspace.workspaceFolders;
+    if (!folders) {
+      return remotes;
+    }
+    for (const folder of folders) {
+      try {
+        const { stdout } = await exec2("git config --get remote.origin.url", { cwd: folder.uri.fsPath });
+        const norm = normalizeGitUrl(stdout);
+        if (norm) {
+          remotes.add(norm);
+        }
+      } catch (e) {
+      }
+    }
+    this.cachedRemotes = remotes;
+    return remotes;
+  }
+  async initialize() {
+    await this.refreshStatusBar();
+    this.startPolling();
+  }
+  startPolling() {
+    if (this.pollInterval) {
+      return;
+    }
+    const intervalMs = vscode2.workspace.getConfiguration("coolify").get("refreshInterval", 5e3);
+    this.pollInterval = setInterval(async () => {
+      if (!this.isDisposed) {
+        await this.refreshStatusBar();
+      }
+    }, intervalMs);
+  }
+  async refreshStatusBar() {
+    if (this.isDisposed || this.isRefreshing) {
+      return;
+    }
+    this.isRefreshing = true;
+    try {
+      const isConfigured = await this.configManager.isConfigured();
+      if (!isConfigured) {
+        this.clearItems();
+        return;
+      }
+      const serverUrl = await this.configManager.getServerUrl();
+      const token = await this.configManager.getToken();
+      if (!serverUrl || !token) {
+        return;
+      }
+      const service = new CoolifyService(serverUrl, token);
+      const applications = await service.getApplications();
+      const pinnedAppId = vscode2.workspace.getConfiguration("coolify").get("defaultApplication");
+      let appsToShow = [];
+      if (pinnedAppId) {
+        appsToShow = applications.filter((a) => a.id === pinnedAppId || a.uuid === pinnedAppId);
+      } else {
+        const remotes = await this.getWorkspaceGitRemotes();
+        if (remotes.size > 0) {
+          appsToShow = applications.filter((a) => {
+            const appRepo = normalizeGitUrl(a.git_repository);
+            return appRepo && remotes.has(appRepo);
+          });
+        }
+      }
+      this.matchedApps = appsToShow;
+      const validApps = appsToShow.filter((a) => a.status && a.status.toLowerCase() !== "unknown");
+      const seenIds = /* @__PURE__ */ new Set();
+      for (const app of validApps) {
+        const appId = app.uuid || app.id;
+        if (!appId) {
+          continue;
+        }
+        seenIds.add(appId);
+        let item = this.items.get(appId);
+        if (!item) {
+          item = vscode2.window.createStatusBarItem(vscode2.StatusBarAlignment.Left, 100);
+          this.items.set(appId, item);
+        }
+        item.name = `Coolify \u2014 ${app.name}`;
+        const statusIcon = this.getStatusIcon(app.status);
+        item.text = `${statusIcon} ${app.name}: ${this.formatStatus(app.status)}`;
+        item.tooltip = new vscode2.MarkdownString(
+          `**Coolify App: ${app.name}**
+
+Status: \`${app.status}\`
+
+Click to view logs`
+        );
+        item.command = {
+          title: "View Logs",
+          command: "coolify.viewApplicationLogs",
+          arguments: [{ id: appId, name: app.name }]
+        };
+        this.applyStatusBackground(item, app.status);
+        item.show();
+      }
+      for (const [id, item] of this.items.entries()) {
+        if (!seenIds.has(id)) {
+          item.dispose();
+          this.items.delete(id);
+        }
+      }
+    } catch (error) {
+      console.error("StatusBarManager: Failed to refresh:", error);
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+  getStatusIcon(status) {
+    const s = status?.toLowerCase() || "";
+    if (s.includes("running")) {
+      return "$(vm-running)";
+    }
+    if (s.includes("stopped") || s.includes("exited")) {
+      return "$(vm-outline)";
+    }
+    if (s.includes("deploying") || s.includes("starting")) {
+      return "$(loading~spin)";
+    }
+    if (s.includes("error") || s.includes("failed")) {
+      return "$(error)";
+    }
+    return "$(circle-outline)";
+  }
+  formatStatus(status) {
+    const s = status?.toLowerCase() || "";
+    if (!s || s === "unknown") {
+      return "Unknown";
+    }
+    if (s.includes("running")) {
+      return "Running";
+    }
+    if (s.includes("stopped") || s.includes("exited")) {
+      return "Stopped";
+    }
+    if (s.includes("deploying") || s.includes("starting")) {
+      return "Deploying";
+    }
+    if (s.includes("error") || s.includes("failed")) {
+      return "Error";
+    }
+    return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+  }
+  applyStatusBackground(item, status) {
+    const s = status?.toLowerCase() || "";
+    if (s.includes("error") || s.includes("failed")) {
+      item.backgroundColor = new vscode2.ThemeColor("statusBarItem.errorBackground");
+    } else if (s.includes("deploying") || s.includes("starting")) {
+      item.backgroundColor = new vscode2.ThemeColor("statusBarItem.warningBackground");
+    } else {
+      item.backgroundColor = void 0;
+    }
+  }
+  clearItems() {
+    for (const item of this.items.values()) {
+      item.dispose();
+    }
+    this.items.clear();
+  }
+  dispose() {
+    this.isDisposed = true;
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
+    this.clearItems();
+  }
+};
+
+// src/providers/CoolifyTreeDataProvider.ts
+var vscode3 = __toESM(require("vscode"));
+var CoolifyTreeItem = class extends vscode3.TreeItem {
+  constructor(label, collapsibleState, kind, rawData, parentId) {
+    super(label, collapsibleState);
+    this.kind = kind;
+    this.rawData = rawData;
+    this.parentId = parentId;
+    this.applyKindConfig();
+  }
+  applyKindConfig() {
+    switch (this.kind) {
+      case "project":
+        this.iconPath = new vscode3.ThemeIcon("folder");
+        this.contextValue = "coolifyProject";
+        break;
+      case "environment":
+        this.iconPath = new vscode3.ThemeIcon("layers");
+        this.contextValue = "coolifyEnvironment";
+        break;
+      case "application": {
+        const app = this.rawData;
+        this.iconPath = this.getAppIcon(app?.status);
+        this.contextValue = `coolifyApp_${app?.status?.toLowerCase() ?? "unknown"}`;
+        if (app?.fqdn) {
+          this.description = app.fqdn.replace(/^https?:\/\//, "");
+        }
+        this.tooltip = this.buildAppTooltip(app);
+        break;
+      }
+      case "server": {
+        const srv = this.rawData;
+        const reachable = srv?.settings?.is_reachable;
+        this.iconPath = new vscode3.ThemeIcon(reachable ? "server-process" : "server-environment");
+        this.contextValue = "coolifyServer";
+        this.description = srv?.ip;
+        break;
+      }
+      case "database": {
+        const db = this.rawData;
+        this.iconPath = new vscode3.ThemeIcon("database");
+        this.contextValue = `coolifyDatabase_${db?.status?.toLowerCase() ?? "unknown"}`;
+        this.description = db?.type;
+        break;
+      }
+      case "category":
+        this.iconPath = new vscode3.ThemeIcon("list-unordered");
+        this.contextValue = "coolifyCategory";
+        break;
+      case "loading":
+        this.iconPath = new vscode3.ThemeIcon("loading~spin");
+        this.contextValue = "coolifyLoading";
+        break;
+      case "empty":
+        this.iconPath = new vscode3.ThemeIcon("info");
+        this.contextValue = "coolifyEmpty";
+        break;
+    }
+  }
+  getAppIcon(status) {
+    switch (status?.toLowerCase()) {
+      case "running":
+        return new vscode3.ThemeIcon("vm-running", new vscode3.ThemeColor("charts.green"));
+      case "stopped":
+      case "exited":
+        return new vscode3.ThemeIcon("vm-outline", new vscode3.ThemeColor("charts.gray"));
+      case "deploying":
+      case "starting":
+        return new vscode3.ThemeIcon("sync~spin", new vscode3.ThemeColor("charts.yellow"));
+      case "error":
+      case "failed":
+        return new vscode3.ThemeIcon("error", new vscode3.ThemeColor("charts.red"));
+      default:
+        return new vscode3.ThemeIcon("circle-outline");
+    }
+  }
+  buildAppTooltip(app) {
+    if (!app) {
+      return new vscode3.MarkdownString("No application data");
+    }
+    const lines = [
+      `**${app.name}**`,
+      ``,
+      `Status: \`${app.status ?? "unknown"}\``
+    ];
+    if (app.git_repository) {
+      lines.push(`Repo: \`${app.git_repository}\``);
+    }
+    if (app.git_branch) {
+      lines.push(`Branch: \`${app.git_branch}\``);
+    }
+    if (app.fqdn) {
+      lines.push(`URL: [${app.fqdn}](${app.fqdn})`);
+    }
+    return new vscode3.MarkdownString(lines.join("\n"));
+  }
+};
+var CoolifyTreeDataProvider = class {
+  constructor(configManager) {
+    this.configManager = configManager;
+  }
+  _onDidChangeTreeData = new vscode3.EventEmitter();
+  onDidChangeTreeData = this._onDidChangeTreeData.event;
+  refreshInterval;
+  isDisposed = false;
+  service;
+  // Cached data
+  cachedProjects = [];
+  cachedApplications = [];
+  cachedServers = [];
+  cachedDatabases = [];
+  isConfigured = false;
+  async initialize() {
+    await this.loadData();
+    this.startAutoRefresh();
+  }
+  startAutoRefresh() {
+    const intervalMs = vscode3.workspace.getConfiguration("coolify").get("refreshInterval", 5e3);
+    this.refreshInterval = setInterval(() => {
+      if (!this.isDisposed) {
+        this.loadData().catch(console.error);
+      }
+    }, intervalMs);
+  }
+  async getService() {
+    const serverUrl = await this.configManager.getServerUrl();
+    const token = await this.configManager.getToken();
+    if (!serverUrl || !token) {
+      return null;
+    }
+    this.service = new CoolifyService(serverUrl, token);
+    return this.service;
+  }
+  async loadData() {
+    this.isConfigured = await this.configManager.isConfigured();
+    if (!this.isConfigured) {
+      this.refresh();
+      return;
+    }
+    try {
+      const svc = await this.getService();
+      if (!svc) {
+        return;
+      }
+      const [projects, applications, servers, databases] = await Promise.allSettled([
+        svc.getProjects(),
+        svc.getApplications(),
+        svc.getServers(),
+        svc.getDatabases()
+      ]);
+      this.cachedProjects = projects.status === "fulfilled" ? projects.value : [];
+      this.cachedApplications = applications.status === "fulfilled" ? applications.value : [];
+      this.cachedServers = servers.status === "fulfilled" ? servers.value : [];
+      this.cachedDatabases = databases.status === "fulfilled" ? databases.value : [];
+      this.refresh();
+    } catch (error) {
+      console.error("CoolifyTreeDataProvider: Failed to load data:", error);
+    }
+  }
+  refresh() {
+    this._onDidChangeTreeData.fire();
+  }
+  // ─── vscode.TreeDataProvider implementation ────────────────────────────────
+  getTreeItem(element) {
+    return element;
+  }
+  async getChildren(element) {
+    if (!this.isConfigured) {
+      const loginItem = new CoolifyTreeItem(
+        "Not signed in \u2014 click to connect",
+        vscode3.TreeItemCollapsibleState.None,
+        "empty"
+      );
+      loginItem.command = {
+        command: "coolify.login",
+        title: "Sign In"
+      };
+      return [loginItem];
+    }
+    if (!element) {
+      return [
+        new CoolifyTreeItem("Projects", vscode3.TreeItemCollapsibleState.Expanded, "category"),
+        new CoolifyTreeItem("Applications", vscode3.TreeItemCollapsibleState.Collapsed, "category"),
+        new CoolifyTreeItem("Servers", vscode3.TreeItemCollapsibleState.Collapsed, "category"),
+        new CoolifyTreeItem("Databases", vscode3.TreeItemCollapsibleState.Collapsed, "category")
+      ];
+    }
+    if (element.kind === "category") {
+      return this.getCategoryChildren(element.label);
+    }
+    if (element.kind === "project") {
+      const project = element.rawData;
+      if (!project.environments || project.environments.length === 0) {
+        return [new CoolifyTreeItem("No environments", vscode3.TreeItemCollapsibleState.None, "empty")];
+      }
+      return project.environments.map(
+        (env4) => new CoolifyTreeItem(
+          env4.name,
+          vscode3.TreeItemCollapsibleState.Collapsed,
+          "environment",
+          env4,
+          String(project.uuid)
+        )
+      );
+    }
+    if (element.kind === "environment") {
+      const env4 = element.rawData;
+      const apps = this.cachedApplications.filter(
+        (a) => (
+          // best-effort: match by environment id if available
+          env4.applications ? env4.applications.some((ea) => ea.id === a.id) : true
+        )
+      );
+      if (apps.length === 0) {
+        return [new CoolifyTreeItem("No applications", vscode3.TreeItemCollapsibleState.None, "empty")];
+      }
+      return apps.map(
+        (app) => new CoolifyTreeItem(
+          app.name,
+          vscode3.TreeItemCollapsibleState.None,
+          "application",
+          app
+        )
+      );
+    }
+    return [];
+  }
+  getCategoryChildren(label) {
+    switch (label) {
+      case "Projects":
+        if (this.cachedProjects.length === 0) {
+          return [new CoolifyTreeItem("No projects found", vscode3.TreeItemCollapsibleState.None, "empty")];
+        }
+        return this.cachedProjects.map(
+          (proj) => new CoolifyTreeItem(
+            proj.name,
+            vscode3.TreeItemCollapsibleState.Collapsed,
+            "project",
+            proj
+          )
+        );
+      case "Applications":
+        if (this.cachedApplications.length === 0) {
+          return [new CoolifyTreeItem("No applications found", vscode3.TreeItemCollapsibleState.None, "empty")];
+        }
+        return this.cachedApplications.map(
+          (app) => new CoolifyTreeItem(
+            app.name,
+            vscode3.TreeItemCollapsibleState.None,
+            "application",
+            app
+          )
+        );
+      case "Servers":
+        if (this.cachedServers.length === 0) {
+          return [new CoolifyTreeItem("No servers found", vscode3.TreeItemCollapsibleState.None, "empty")];
+        }
+        return this.cachedServers.map(
+          (srv) => new CoolifyTreeItem(
+            srv.name,
+            vscode3.TreeItemCollapsibleState.None,
+            "server",
+            srv
+          )
+        );
+      case "Databases":
+        if (this.cachedDatabases.length === 0) {
+          return [new CoolifyTreeItem("No databases found", vscode3.TreeItemCollapsibleState.None, "empty")];
+        }
+        return this.cachedDatabases.map(
+          (db) => new CoolifyTreeItem(
+            db.name,
+            vscode3.TreeItemCollapsibleState.None,
+            "database",
+            db
+          )
+        );
+      default:
+        return [];
+    }
+  }
+  getService_() {
+    return this.service;
+  }
+  getCachedApplications() {
+    return this.cachedApplications;
+  }
+  getCachedDatabases() {
+    return this.cachedDatabases;
+  }
+  dispose() {
+    this.isDisposed = true;
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    this._onDidChangeTreeData.dispose();
+  }
+};
+
+// src/commands/index.ts
+var vscode11 = __toESM(require("vscode"));
+
+// src/commands/deploy.ts
+var vscode4 = __toESM(require("vscode"));
+var import_child_process = require("child_process");
+var import_child_process2 = require("child_process");
+var pipelineChannel;
+function getPipelineChannel() {
+  if (!pipelineChannel) {
+    pipelineChannel = vscode4.window.createOutputChannel("Coolify: Deploy Pipeline");
+  }
+  return pipelineChannel;
+}
+function banner(channel, stage) {
+  channel.appendLine("");
+  channel.appendLine(`${"\u2500".repeat(60)}`);
+  channel.appendLine(`  ${stage}`);
+  channel.appendLine(`${"\u2500".repeat(60)}`);
+}
+function timestamp() {
+  return (/* @__PURE__ */ new Date()).toLocaleTimeString();
+}
+function gitPushLive(workspaceRoot, channel) {
+  return new Promise((resolve) => {
+    banner(channel, "\u{1F500}  STAGE 1 \u2014 Git Push");
+    channel.appendLine(`[${timestamp()}] Running: git push origin HEAD`);
+    const proc = (0, import_child_process.spawn)("git", ["push", "origin", "HEAD"], { cwd: workspaceRoot });
+    proc.stdout.on("data", (data) => {
+      channel.append(data.toString());
+    });
+    proc.stderr.on("data", (data) => {
+      channel.append(data.toString());
+    });
+    proc.on("close", (code) => {
+      if (code === 0) {
+        channel.appendLine(`[${timestamp()}] \u2705 Git push succeeded.`);
+        resolve(true);
+      } else {
+        channel.appendLine(`[${timestamp()}] \u274C Git push exited with code ${code}.`);
+        resolve(false);
+      }
+    });
+    proc.on("error", (err) => {
+      channel.appendLine(`[${timestamp()}] \u274C Git push error: ${err.message}`);
+      resolve(false);
+    });
+  });
+}
+async function waitForCommitOnCoolify(service, appUuid, localSha, channel) {
+  banner(channel, "\u2705  STAGE 2 \u2014 Commit Verification");
+  channel.appendLine(`[${timestamp()}] Waiting for Coolify to detect commit: ${localSha.slice(0, 8)}`);
+  const maxAttempts = 20;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const app = await service.getApplication(appUuid);
+      const coolifysha = app.git_commit_sha;
+      channel.appendLine(`[${timestamp()}] Attempt ${i + 1}/${maxAttempts} \u2014 Coolify SHA: ${coolifysha?.slice(0, 8) ?? "unknown"}`);
+      if (coolifysha && localSha.startsWith(coolifysha) || coolifysha && coolifysha.startsWith(localSha.slice(0, 8))) {
+        channel.appendLine(`[${timestamp()}] \u2705 Commit verified on Coolify!`);
+        return;
+      }
+    } catch (e) {
+      channel.appendLine(`[${timestamp()}] (poll error: ${e instanceof Error ? e.message : String(e)})`);
+    }
+    await new Promise((r) => setTimeout(r, 3e3));
+  }
+  channel.appendLine(`[${timestamp()}] \u26A0\uFE0F  Commit not yet visible on Coolify \u2014 continuing anyway (webhook may handle it).`);
+}
+async function deployAndStreamLogs(service, appUuid, appName, channel, token) {
+  banner(channel, "\u{1F680}  STAGE 3 \u2014 Triggering Deployment");
+  let deployUuid;
+  try {
+    deployUuid = await service.startDeployment(appUuid);
+  } catch (err) {
+    channel.appendLine(`[${timestamp()}] \u274C Failed to start deployment: ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  }
+  if (!deployUuid) {
+    channel.appendLine(`[${timestamp()}] \u26A0\uFE0F  Deployment started but no UUID returned \u2014 cannot stream logs.`);
+    vscode4.window.showInformationMessage(`\u{1F680} Deployment started for ${appName}`);
+    return true;
+  }
+  channel.appendLine(`[${timestamp()}] Deploy UUID: ${deployUuid}`);
+  banner(channel, "\u{1F4CB}  STAGE 4 \u2014 Live Deploy Logs");
+  channel.appendLine(`[${timestamp()}] Polling for build logs...`);
+  let lastLogLength = 0;
+  let isFinished = false;
+  let success = false;
+  while (!isFinished && !token.isCancellationRequested) {
+    await new Promise((r) => setTimeout(r, 3e3));
+    try {
+      const deployInfo = await service.getDeployment(deployUuid);
+      if (!deployInfo) {
+        continue;
+      }
+      const anyInfo = deployInfo;
+      if (anyInfo.logs && typeof anyInfo.logs === "string") {
+        const currentLogs = anyInfo.logs;
+        if (currentLogs.length > lastLogLength) {
+          channel.append(currentLogs.substring(lastLogLength));
+          lastLogLength = currentLogs.length;
+        }
+      }
+      const status = deployInfo.status ?? "";
+      if (status === "finished" || status === "failed" || status === "error") {
+        isFinished = true;
+        success = status === "finished";
+        const icon = success ? "\u2705" : "\u274C";
+        channel.appendLine(`
+[${timestamp()}] ${icon} Deployment ${status.toUpperCase()}.`);
+        if (success) {
+          vscode4.window.showInformationMessage(`\u2705 Deployment successful: ${appName}`);
+        } else {
+          vscode4.window.showErrorMessage(`\u274C Deployment failed: ${appName} (${status})`);
+        }
+      }
+    } catch (pollErr) {
+      channel.appendLine(`[${timestamp()}] (log poll error: ${pollErr instanceof Error ? pollErr.message : String(pollErr)})`);
+    }
+  }
+  return success;
+}
+async function streamAppLogsLive(service, appUuid, appName, channel, token) {
+  banner(channel, "\u{1F4E1}  STAGE 5 \u2014 Live App Logs");
+  channel.appendLine(`[${timestamp()}] Tailing app logs for ${appName}\u2026 (cancel the progress notification to stop)`);
+  let lastLength = 0;
+  while (!token.isCancellationRequested) {
+    try {
+      const logs = await service.getApplicationLogs(appUuid);
+      if (logs && logs.length > lastLength) {
+        channel.append(logs.substring(lastLength));
+        lastLength = logs.length;
+      }
+    } catch (e) {
+      channel.appendLine(`[${timestamp()}] (app log fetch error: ${e instanceof Error ? e.message : String(e)})`);
+    }
+    await new Promise((r) => setTimeout(r, 3e3));
+  }
+  channel.appendLine(`
+[${timestamp()}] \u{1F6D1} App log tailing stopped.`);
+}
+async function runDeploymentFlow(configManager, appUuid, appName = "Application") {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Coolify is not configured. Please sign in.");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    const channel = getPipelineChannel();
+    channel.clear();
+    channel.show(true);
+    channel.appendLine(`\u2554${"\u2550".repeat(58)}\u2557`);
+    channel.appendLine(`\u2551  Coolify Deploy Pipeline \u2014 ${appName.padEnd(28)} \u2551`);
+    channel.appendLine(`\u2551  Started: ${timestamp().padEnd(46)} \u2551`);
+    channel.appendLine(`\u255A${"\u2550".repeat(58)}\u255D`);
+    let localSha;
+    const workspaceFolders = vscode4.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      try {
+        const statusOutput = (0, import_child_process2.execSync)("git status --porcelain", { cwd: workspaceRoot }).toString().trim();
+        if (statusOutput.length > 0) {
+          const proceed = await vscode4.window.showWarningMessage(
+            `You have uncommitted changes. Only committed files will be pushed to Coolify. Proceed anyway?`,
+            "Proceed",
+            "Cancel"
+          );
+          if (proceed !== "Proceed") {
+            channel.appendLine(`[${timestamp()}] \u{1F6D1} Deployment cancelled by user (uncommitted changes).`);
+            return;
+          }
+        }
+      } catch (e) {
+        channel.appendLine(`[${timestamp()}] \u26A0\uFE0F Could not check git status.`);
+      }
+      try {
+        const localBranch = (0, import_child_process2.execSync)("git rev-parse --abbrev-ref HEAD", { cwd: workspaceRoot }).toString().trim();
+        const appDetails = await service.getApplication(appUuid);
+        const remoteBranch = appDetails?.git_branch;
+        if (remoteBranch && localBranch !== remoteBranch) {
+          const proceed = await vscode4.window.showWarningMessage(
+            `Coolify expects branch '${remoteBranch}', but your local branch is '${localBranch}'. Your push might not trigger the correct deployment. Proceed anyway?`,
+            "Proceed",
+            "Cancel"
+          );
+          if (proceed !== "Proceed") {
+            channel.appendLine(`[${timestamp()}] \u{1F6D1} Deployment cancelled by user (branch mismatch).`);
+            return;
+          }
+        }
+      } catch (e) {
+        channel.appendLine(`[${timestamp()}] \u26A0\uFE0F Could not verify git branch match: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      try {
+        localSha = (0, import_child_process2.execSync)("git rev-parse HEAD", { cwd: workspaceRoot }).toString().trim();
+      } catch {
+        channel.appendLine(`[${timestamp()}] \u26A0\uFE0F  Could not read local git SHA.`);
+      }
+      const pushOk = await vscode4.window.withProgress(
+        { location: vscode4.ProgressLocation.Notification, title: `[Coolify] ${appName}: Pushing to GitHub\u2026`, cancellable: false },
+        () => gitPushLive(workspaceRoot, channel)
+      );
+      if (!pushOk) {
+        vscode4.window.showErrorMessage(`\u274C Git push failed for ${appName}. Check the Coolify Deploy Pipeline output for details.`);
+        channel.show(true);
+        return;
+      }
+      if (localSha) {
+        await vscode4.window.withProgress(
+          { location: vscode4.ProgressLocation.Notification, title: `[Coolify] ${appName}: Verifying commit on Coolify\u2026`, cancellable: false },
+          () => waitForCommitOnCoolify(service, appUuid, localSha, channel)
+        );
+      }
+    } else {
+      banner(channel, "\u{1F500}  STAGE 1 \u2014 Git Push");
+      channel.appendLine(`[${timestamp()}] \u23ED  No workspace open \u2014 skipping git push.`);
+      banner(channel, "\u2705  STAGE 2 \u2014 Commit Verification");
+      channel.appendLine(`[${timestamp()}] \u23ED  Skipped (no workspace).`);
+    }
+    await vscode4.window.withProgress(
+      {
+        location: vscode4.ProgressLocation.Notification,
+        title: `[Coolify] ${appName}: Deploying\u2026`,
+        cancellable: true
+      },
+      async (_progress, cancellationToken) => {
+        const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, channel, cancellationToken);
+        if (deploySuccess) {
+          await streamAppLogsLive(service, appUuid, appName, channel, cancellationToken);
+        }
+      }
+    );
+  } catch (error) {
+    vscode4.window.showErrorMessage(`Deploy pipeline error: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+async function deployCurrentProjectCommand(configManager, statusBarManager2) {
+  try {
+    const matchedApps = statusBarManager2.getMatchedApps();
+    if (!matchedApps || matchedApps.length === 0) {
+      vscode4.window.showInformationMessage("No Coolify apps found matching the current workspace.");
+      return;
+    }
+    if (matchedApps.length === 1) {
+      const app = matchedApps[0];
+      await runDeploymentFlow(configManager, app.uuid || app.id || "", app.name);
+      return;
+    }
+    const selected = await vscode4.window.showQuickPick(
+      matchedApps.map((app) => ({
+        label: app.name,
+        description: app.status,
+        detail: app.fqdn ? `\u{1F310} ${app.fqdn}` : void 0,
+        id: app.uuid || app.id || ""
+      })),
+      { placeHolder: "Select an application to deploy from current workspace", title: "Coolify: Deploy Current Project" }
+    );
+    if (selected) {
+      await runDeploymentFlow(configManager, selected.id, selected.label);
+    }
+  } catch (error) {
+    vscode4.window.showErrorMessage(error instanceof Error ? error.message : "Failed to start deployment");
+  }
+}
+async function cancelDeploymentCommand(configManager) {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Extension not configured properly");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    const deployments = await service.getDeployments();
+    const inProgress = deployments.filter((d) => d.status === "in_progress" || d.status === "queued");
+    if (!inProgress || inProgress.length === 0) {
+      vscode4.window.showInformationMessage("No active deployments found");
+      return;
+    }
+    const selected = await vscode4.window.showQuickPick(
+      inProgress.map((d) => ({
+        label: `Cancel: ${d.application_name || "Deployment"}`,
+        description: d.status,
+        detail: d.commit_message || `Deployment ID: ${d.id}`,
+        id: d.id
+      })),
+      { placeHolder: "Select a deployment to cancel", title: "Cancel Deployment" }
+    );
+    if (selected) {
+      vscode4.window.withProgress(
+        { location: vscode4.ProgressLocation.Notification, title: `Canceling ${selected.label}\u2026`, cancellable: false },
+        async () => {
+          await service.cancelDeployment(selected.id);
+          vscode4.window.showInformationMessage("\u2705 Deployment canceled.");
+        }
+      );
+    }
+  } catch (error) {
+    vscode4.window.showErrorMessage(error instanceof Error ? error.message : "Failed to cancel deployment");
+  }
+}
+
+// src/commands/applicationActions.ts
+var vscode5 = __toESM(require("vscode"));
+async function performApplicationAction(configManager, action, title, preselectedId, preselectedName) {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Extension not configured properly");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    let targetId = preselectedId;
+    let targetName = preselectedName;
+    if (!targetId) {
+      const applications = await service.getApplications();
+      if (!applications || applications.length === 0) {
+        vscode5.window.showInformationMessage("No applications found");
+        return;
+      }
+      const selected = await vscode5.window.showQuickPick(
+        applications.map((app) => ({
+          label: app.name,
+          description: app.status,
+          detail: `Status: ${app.status}`,
+          id: app.uuid || app.id || ""
+        })),
+        { placeHolder: `Select an application to ${action}`, title }
+      );
+      if (!selected) {
+        return;
+      }
+      targetId = selected.id;
+      targetName = selected.label;
+    }
+    await vscode5.window.withProgress(
+      {
+        location: vscode5.ProgressLocation.Notification,
+        title: `${action}ing ${targetName}...`,
+        cancellable: false
+      },
+      async () => {
+        if (action === "start") {
+          await service.startApplication(targetId);
+        } else if (action === "stop") {
+          await service.stopApplication(targetId);
+        } else {
+          await service.restartApplication(targetId);
+        }
+        const enableNotifications = vscode5.workspace.getConfiguration("coolify").get("enableNotifications", true);
+        if (enableNotifications) {
+          vscode5.window.showInformationMessage(`\u2705 Successfully ${action}ed ${targetName}`);
+        }
+      }
+    );
+  } catch (error) {
+    vscode5.window.showErrorMessage(
+      error instanceof Error ? error.message : `Failed to ${action} application`
+    );
+  }
+}
+async function startApplicationCommand(_unused, configManager, id, name) {
+  await performApplicationAction(configManager, "start", "Start Application", id, name);
+}
+async function stopApplicationCommand(_unused, configManager, id, name) {
+  await performApplicationAction(configManager, "stop", "Stop Application", id, name);
+}
+async function restartApplicationCommand(_unused, configManager, id, name) {
+  await performApplicationAction(configManager, "restart", "Restart Application", id, name);
+}
+
+// src/commands/databaseActions.ts
+var vscode6 = __toESM(require("vscode"));
+async function performDatabaseAction(configManager, action, actionLabel, providedUuid, providedName) {
+  let targetUuid = providedUuid;
+  let targetName = providedName || "Database";
+  if (!targetUuid) {
+    const serverUrl2 = await configManager.getServerUrl();
+    const token2 = await configManager.getToken();
+    if (!serverUrl2 || !token2) {
+      vscode6.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");
+      return;
+    }
+    const service2 = new CoolifyService(serverUrl2, token2);
+    let databases = [];
+    await vscode6.window.withProgress(
+      { location: vscode6.ProgressLocation.Notification, title: "Fetching databases..." },
+      async () => {
+        databases = await service2.getDatabases();
+      }
+    );
+    if (!databases || databases.length === 0) {
+      vscode6.window.showInformationMessage("No databases found.");
+      return;
+    }
+    const selected = await vscode6.window.showQuickPick(
+      databases.map((db) => ({
+        label: db.name,
+        description: db.status,
+        detail: db.type,
+        id: db.uuid
+      })),
+      { placeHolder: `Select a database to ${action}`, title: actionLabel }
+    );
+    if (!selected) {
+      return;
+    }
+    targetUuid = selected.id;
+    targetName = selected.label;
+  }
+  if (!targetUuid) {
+    return;
+  }
+  const serverUrl = await configManager.getServerUrl();
+  const token = await configManager.getToken();
+  if (!serverUrl || !token) {
+    vscode6.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");
+    return;
+  }
+  const service = new CoolifyService(serverUrl, token);
+  await vscode6.window.withProgress(
+    {
+      location: vscode6.ProgressLocation.Notification,
+      title: `${actionLabel} for ${targetName}...`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        if (action === "start") {
+          await service.startDatabase(targetUuid);
+        } else if (action === "stop") {
+          await service.stopDatabase(targetUuid);
+        }
+        const enableNotifications = vscode6.workspace.getConfiguration("coolify").get("enableNotifications", true);
+        if (enableNotifications) {
+          vscode6.window.showInformationMessage(`\u2705 ${targetName} ${action} command sent successfully`);
+        }
+      } catch (error) {
+        vscode6.window.showErrorMessage(`Failed to ${action} ${targetName}`);
+        console.error(`Error in database action (${action}):`, error);
+      }
+    }
+  );
+}
+async function startDatabaseCommand(_unused, configManager, uuid, name) {
+  await performDatabaseAction(configManager, "start", "Start Database", uuid, name);
+}
+async function stopDatabaseCommand(_unused, configManager, uuid, name) {
+  await performDatabaseAction(configManager, "stop", "Stop Database", uuid, name);
+}
+
+// src/commands/logs.ts
+var vscode7 = __toESM(require("vscode"));
+var logsOutputChannel;
+function getLogsChannel() {
+  if (!logsOutputChannel) {
+    logsOutputChannel = vscode7.window.createOutputChannel("Coolify Logs");
+  }
+  return logsOutputChannel;
+}
+async function viewApplicationLogsCommand(configManager, app) {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Extension not configured properly");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    let targetId = app?.id;
+    let targetName = app?.name;
+    if (!targetId) {
+      const applications = await service.getApplications();
+      if (!applications || applications.length === 0) {
+        vscode7.window.showInformationMessage("No applications found");
+        return;
+      }
+      const selected = await vscode7.window.showQuickPick(
+        applications.map((a) => ({
+          label: a.name,
+          description: a.status,
+          detail: a.fqdn,
+          id: a.uuid || a.id || ""
+        })),
+        { placeHolder: "Select an application to view logs", title: "Coolify: View Logs" }
+      );
+      if (!selected) {
+        return;
+      }
+      targetId = selected.id;
+      targetName = selected.label;
+    }
+    const channel = getLogsChannel();
+    channel.clear();
+    channel.show(true);
+    channel.appendLine(`\u2500\u2500 Coolify Logs \u2014 ${targetName} \u2500\u2500`);
+    channel.appendLine(`Fetching logs from ${serverUrl}...`);
+    channel.appendLine("");
+    await vscode7.window.withProgress(
+      {
+        location: vscode7.ProgressLocation.Notification,
+        title: `Fetching logs for ${targetName}...`,
+        cancellable: false
+      },
+      async () => {
+        const logs = await service.getApplicationLogs(targetId);
+        channel.appendLine(logs || "(No log output)");
+      }
+    );
+  } catch (error) {
+    vscode7.window.showErrorMessage(
+      error instanceof Error ? error.message : "Failed to fetch logs"
+    );
+  }
+}
+async function viewApplicationLogsLiveCommand(configManager, app) {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Extension not configured properly");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    let targetId = app?.id;
+    let targetName = app?.name;
+    if (!targetId) {
+      const applications = await service.getApplications();
+      if (!applications || applications.length === 0) {
+        vscode7.window.showInformationMessage("No applications found");
+        return;
+      }
+      const selected = await vscode7.window.showQuickPick(
+        applications.map((a) => ({
+          label: a.name,
+          description: a.status,
+          detail: a.fqdn,
+          id: a.uuid || a.id || ""
+        })),
+        { placeHolder: "Select an application to tail logs", title: "Coolify: Live App Logs" }
+      );
+      if (!selected) {
+        return;
+      }
+      targetId = selected.id;
+      targetName = selected.label;
+    }
+    const channel = getLogsChannel();
+    channel.clear();
+    channel.show(true);
+    channel.appendLine(`\u2500\u2500 Coolify Live Logs \u2014 ${targetName} \u2500\u2500`);
+    channel.appendLine(`Tailing logs\u2026 (cancel the progress notification to stop)`);
+    channel.appendLine("");
+    await vscode7.window.withProgress(
+      {
+        location: vscode7.ProgressLocation.Notification,
+        title: `[Coolify] Live logs: ${targetName}`,
+        cancellable: true
+      },
+      async (_progress, cancellationToken) => {
+        let lastLength = 0;
+        while (!cancellationToken.isCancellationRequested) {
+          try {
+            const logs = await service.getApplicationLogs(targetId);
+            if (logs && logs.length > lastLength) {
+              channel.append(logs.substring(lastLength));
+              lastLength = logs.length;
+            }
+          } catch (e) {
+            channel.appendLine(`(fetch error: ${e instanceof Error ? e.message : String(e)})`);
+          }
+          await new Promise((r) => setTimeout(r, 3e3));
+        }
+        channel.appendLine(`
+\u{1F6D1} Live log tail stopped.`);
+      }
+    );
+  } catch (error) {
+    vscode7.window.showErrorMessage(error instanceof Error ? error.message : "Failed to tail logs");
+  }
+}
+async function createDatabaseBackupCommand(configManager, db) {
+  try {
+    const serverUrl = await configManager.getServerUrl();
+    const token = await configManager.getToken();
+    if (!serverUrl || !token) {
+      throw new Error("Extension not configured properly");
+    }
+    const service = new CoolifyService(serverUrl, token);
+    let targetId = db?.id;
+    let targetName = db?.name;
+    if (!targetId) {
+      const databases = await service.getDatabases();
+      if (!databases || databases.length === 0) {
+        vscode7.window.showInformationMessage("No databases found");
+        return;
+      }
+      const selected = await vscode7.window.showQuickPick(
+        databases.map((d) => ({
+          label: d.name,
+          description: d.type,
+          detail: d.status,
+          id: d.uuid
+        })),
+        { placeHolder: "Select a database to back up", title: "Coolify: Create Database Backup" }
+      );
+      if (!selected) {
+        return;
+      }
+      targetId = selected.id;
+      targetName = selected.label;
+    }
+    await vscode7.window.withProgress(
+      {
+        location: vscode7.ProgressLocation.Notification,
+        title: `Creating backup for ${targetName}...`,
+        cancellable: false
+      },
+      async () => {
+        await service.createDatabaseBackup(targetId);
+        vscode7.window.showInformationMessage(`\u2705 Backup created for ${targetName}`);
+      }
+    );
+  } catch (error) {
+    vscode7.window.showErrorMessage(
+      error instanceof Error ? error.message : "Failed to create backup"
+    );
+  }
+}
+
+// src/commands/browser.ts
+var vscode8 = __toESM(require("vscode"));
+async function openInBrowserCommand(configManager, treeDataProvider2, item) {
+  let fqdn;
+  let appName = "";
+  if (item?.kind === "application" && item.rawData) {
+    const app = item.rawData;
+    fqdn = app.fqdn;
+    appName = app.name;
+  } else {
+    const appsWithUrl = treeDataProvider2.getCachedApplications().filter((a) => !!a.fqdn);
+    if (appsWithUrl.length === 0) {
+      vscode8.window.showInformationMessage("No applications have a public URL configured in Coolify.");
+      return;
+    }
+    const selected = await vscode8.window.showQuickPick(
+      appsWithUrl.map((app) => ({
+        label: app.name,
+        description: app.fqdn.replace(/^https?:\/\//, ""),
+        detail: `Status: ${app.status ?? "unknown"}`,
+        fqdn: app.fqdn
+      })),
+      { placeHolder: "Select an application to open", title: "Open in Browser" }
+    );
+    if (!selected) {
+      return;
+    }
+    fqdn = selected.fqdn;
+    appName = selected.label;
+  }
+  if (!fqdn) {
+    vscode8.window.showWarningMessage(`${appName} has no public URL configured in Coolify.`);
+    return;
+  }
+  const url = vscode8.Uri.parse(fqdn.startsWith("http") ? fqdn : `https://${fqdn}`);
+  await vscode8.env.openExternal(url);
+}
+async function copyUuidCommand(treeDataProvider2, item) {
+  let uuid;
+  let label = "";
+  if (item?.rawData) {
+    const data = item.rawData;
+    uuid = data.uuid ?? data.uuid;
+    label = data.name ?? data.name;
+  } else {
+    const apps = treeDataProvider2.getCachedApplications();
+    const dbs = treeDataProvider2.getCachedDatabases();
+    const items = [
+      ...apps.map((a) => ({ label: a.name, description: `App \xB7 ${a.uuid}`, uuid: a.uuid })),
+      ...dbs.map((d) => ({ label: d.name, description: `DB \xB7 ${d.uuid}`, uuid: d.uuid }))
+    ];
+    if (items.length === 0) {
+      vscode8.window.showInformationMessage("No resources found to copy UUID from.");
+      return;
+    }
+    const selected = await vscode8.window.showQuickPick(items, {
+      placeHolder: "Select a resource to copy its UUID",
+      title: "Copy UUID"
+    });
+    if (!selected) {
+      return;
+    }
+    uuid = selected.uuid;
+    label = selected.label;
+  }
+  if (!uuid) {
+    vscode8.window.showWarningMessage("UUID not available for this resource.");
+    return;
+  }
+  await vscode8.env.clipboard.writeText(uuid);
+  vscode8.window.showInformationMessage(`\u2705 UUID for "${label}" copied to clipboard!`);
+}
+async function quickDeployCommand(configManager, treeDataProvider2) {
+  const apps = treeDataProvider2.getCachedApplications();
+  if (apps.length === 0) {
+    vscode8.window.showInformationMessage("No applications found. Try refreshing.");
+    return;
+  }
+  const statusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case "running":
+        return "\u{1F7E2}";
+      case "stopped":
+      case "exited":
+        return "\u{1F534}";
+      case "deploying":
+      case "starting":
+        return "\u{1F7E1}";
+      case "error":
+      case "failed":
+        return "\u274C";
+      default:
+        return "\u26AA";
+    }
+  };
+  const selected = await vscode8.window.showQuickPick(
+    apps.map((app) => ({
+      label: `${statusIcon(app.status)} ${app.name}`,
+      description: app.fqdn?.replace(/^https?:\/\//, "") ?? "",
+      detail: `Status: ${app.status ?? "unknown"} \xB7 ${app.git_branch ? `Branch: ${app.git_branch}` : ""}`,
+      uuid: app.uuid ?? app.id ?? "",
+      name: app.name
+    })),
+    {
+      placeHolder: "Type to filter, select to deploy immediately",
+      title: "\u26A1 Quick Deploy",
+      matchOnDescription: true,
+      matchOnDetail: true
+    }
+  );
+  if (!selected) {
+    return;
+  }
+  const serverUrl = await configManager.getServerUrl();
+  const token = await configManager.getToken();
+  if (!serverUrl || !token) {
+    vscode8.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");
+    return;
+  }
+  const service = new CoolifyService(serverUrl, token);
+  await vscode8.window.withProgress(
+    {
+      location: vscode8.ProgressLocation.Notification,
+      title: `\u{1F680} Deploying ${selected.name}\u2026`,
+      cancellable: false
+    },
+    async () => {
+      try {
+        await service.startDeployment(selected.uuid);
+        vscode8.window.showInformationMessage(
+          `\u{1F680} ${selected.name} deployment started!`,
+          "View Logs"
+        ).then((action) => {
+          if (action === "View Logs") {
+            vscode8.commands.executeCommand(
+              "coolify.viewApplicationLogs",
+              { id: selected.uuid, name: selected.name }
+            );
+          }
+        });
+      } catch (err) {
+        vscode8.window.showErrorMessage(
+          `Deploy failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+  );
+}
+async function testConnectionCommand(configManager) {
+  const serverUrl = await configManager.getServerUrl();
+  const token = await configManager.getToken();
+  if (!serverUrl || !token) {
+    vscode8.window.showErrorMessage("Coolify is not configured. Run Coolify: Configure first.");
+    return;
+  }
+  await vscode8.window.withProgress(
+    { location: vscode8.ProgressLocation.Notification, title: "Testing Coolify connection\u2026", cancellable: false },
+    async () => {
+      try {
+        const service = new CoolifyService(serverUrl, token);
+        const version = await service.getVersion();
+        vscode8.window.showInformationMessage(
+          `\u2705 Connected to Coolify v${version} at ${serverUrl.replace(/^https?:\/\//, "")}`
+        );
+      } catch (err) {
+        vscode8.window.showErrorMessage(
+          `\u274C Connection failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+  );
+}
+
+// src/commands/gitAdvisor.ts
+var vscode9 = __toESM(require("vscode"));
+function matchesRepo(remotes, coolifyRepo) {
+  if (!coolifyRepo || !remotes) {
+    return false;
+  }
+  const target = coolifyRepo.replace(/\.git$/, "").toLowerCase();
+  for (const r of remotes) {
+    const fetchUrl = r.fetchUrl ? r.fetchUrl.replace(/\.git$/, "").toLowerCase() : "";
+    const pushUrl = r.pushUrl ? r.pushUrl.replace(/\.git$/, "").toLowerCase() : "";
+    if (fetchUrl.endsWith(target) || pushUrl.endsWith(target)) {
+      return true;
+    }
+  }
+  return false;
+}
+function registerGitPushAdvisor(context, configManager, treeDataProvider2) {
+  const gitExtension = vscode9.extensions.getExtension("vscode.git");
+  if (!gitExtension) {
+    return;
+  }
+  const git = gitExtension.isActive ? gitExtension.exports : null;
+  if (!git) {
+    return;
+  }
+  const api = git.getAPI(1);
+  if (!api?.repositories?.length) {
+    return;
+  }
+  for (const repo of api.repositories) {
+    context.subscriptions.push(
+      repo.state.onDidChange(async () => {
+        const currentBranch = repo.state.HEAD?.name;
+        if (!currentBranch) {
+          return;
+        }
+        if (!await configManager.isConfigured()) {
+          return;
+        }
+        const apps = treeDataProvider2.getCachedApplications();
+        const matchedApps = apps.filter(
+          (a) => a.git_branch === currentBranch && a.status !== "deploying" && matchesRepo(repo.state.remotes, a.git_repository)
+        );
+        if (matchedApps.length === 0) {
+          return;
+        }
+        const cooldownKey = `coolify.gitAdvisor.${currentBranch}`;
+        const lastShown = context.globalState.get(cooldownKey) ?? 0;
+        if (Date.now() - lastShown < 3e4) {
+          return;
+        }
+        await context.globalState.update(cooldownKey, Date.now());
+        if (matchedApps.length === 1) {
+          const app = matchedApps[0];
+          const action = await vscode9.window.showInformationMessage(
+            `Coolify: "${app.name}" is configured to deploy from \`${currentBranch}\`. Deploy now?`,
+            "Deploy",
+            "Dismiss"
+          );
+          if (action === "Deploy") {
+            vscode9.commands.executeCommand(
+              "coolify.startDeployment",
+              { kind: "application", rawData: app }
+            );
+          }
+        } else {
+          const serverUrl = await configManager.getServerUrl();
+          const token = await configManager.getToken();
+          if (!serverUrl || !token) {
+            return;
+          }
+          const selected = await vscode9.window.showQuickPick(
+            matchedApps.map((a) => ({
+              label: a.name,
+              description: a.fqdn ?? "",
+              detail: `Branch: ${a.git_branch}`,
+              uuid: a.uuid ?? a.id ?? ""
+            })),
+            {
+              title: `Deploy from ${currentBranch}?`,
+              placeHolder: "Select an app to deploy (Escape to skip)"
+            }
+          );
+          if (selected) {
+            const service = new CoolifyService(serverUrl, token);
+            await vscode9.window.withProgress(
+              { location: vscode9.ProgressLocation.Notification, title: `\u{1F680} Deploying ${selected.label}\u2026`, cancellable: false },
+              async () => {
+                await service.startDeployment(selected.uuid);
+                vscode9.window.showInformationMessage(`\u{1F680} ${selected.label} deployment started!`);
+              }
+            );
+          }
+        }
+      })
+    );
+  }
+}
+
+// src/panels/CoolifyDashboardPanel.ts
+var vscode10 = __toESM(require("vscode"));
+var CoolifyDashboardPanel = class _CoolifyDashboardPanel {
+  constructor(panel, extensionUri, configManager) {
+    this.configManager = configManager;
+    this._panel = panel;
+    this._extensionUri = extensionUri;
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    this._panel.onDidChangeViewState(
+      (e) => {
+        if (this._panel.visible) {
+          this.startAutoRefresh();
+        } else {
+          this.stopAutoRefresh();
+        }
+      },
+      null,
+      this._disposables
+    );
+    this._panel.webview.onDidReceiveMessage(
+      (message) => {
+        switch (message.type) {
+          case "refresh":
+            this.updatePanelData();
+            break;
+          case "openLogs":
+            vscode10.commands.executeCommand("coolify.viewApplicationLogs", message.uuid, message.name);
+            break;
+          case "openLiveLogs":
+            vscode10.commands.executeCommand("coolify.viewApplicationLogsLive", message.uuid, message.name);
+            break;
+          case "deployApp":
+            vscode10.commands.executeCommand("coolify.startDeployment", message.uuid);
+            break;
+        }
+      },
+      null,
+      this._disposables
+    );
+    this.startAutoRefresh();
+  }
+  static currentPanel;
+  _panel;
+  _extensionUri;
+  _disposables = [];
+  _refreshInterval;
+  static createOrShow(extensionUri, configManager) {
+    const column = vscode10.window.activeTextEditor ? vscode10.window.activeTextEditor.viewColumn : void 0;
+    if (_CoolifyDashboardPanel.currentPanel) {
+      _CoolifyDashboardPanel.currentPanel._panel.reveal(column);
+      return;
+    }
+    const panel = vscode10.window.createWebviewPanel(
+      "coolifyDashboard",
+      "Coolify Dashboard",
+      column || vscode10.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode10.Uri.joinPath(extensionUri, "public")]
+      }
+    );
+    _CoolifyDashboardPanel.currentPanel = new _CoolifyDashboardPanel(panel, extensionUri, configManager);
+  }
+  startAutoRefresh() {
+    this.stopAutoRefresh();
+    this.updatePanelData();
+    const interval = vscode10.workspace.getConfiguration("coolify").get("refreshInterval", 5e3);
+    this._refreshInterval = setInterval(() => this.updatePanelData(), interval);
+  }
+  stopAutoRefresh() {
+    if (this._refreshInterval) {
+      clearInterval(this._refreshInterval);
+      this._refreshInterval = void 0;
+    }
+  }
+  async updatePanelData() {
+    if (!this._panel.visible) {
+      return;
+    }
+    try {
+      const serverUrl = await this.configManager.getServerUrl();
+      const token = await this.configManager.getToken();
+      if (!serverUrl || !token) {
+        this._panel.webview.html = this.getNotConfiguredHtml();
+        return;
+      }
+      const svc = new CoolifyService(serverUrl, token);
+      const [servers, apps, dbs] = await Promise.all([
+        svc.getServers(),
+        svc.getApplications(),
+        svc.getDatabases()
+      ]);
+      this._panel.webview.html = this.getDashboardHtml(servers, apps, dbs, serverUrl);
+    } catch (error) {
+      console.error("Coolify Dashboard error:", error);
+      this._panel.webview.html = `<h1>Error Loading Dashboard</h1><p>${error instanceof Error ? error.message : "Unknown error"}</p>`;
+    }
+  }
+  getNotConfiguredHtml() {
+    return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -25,46 +1812,72 @@ Click to view logs`),f.command={title:"View Logs",command:"coolify.viewApplicati
                 </div>
             </body>
             </html>
-        `}getDashboardHtml(e,t,i,n){let a=this._panel.webview.asWebviewUri(D.Uri.joinPath(this._extensionUri,"public","logo.svg")),o=e.map(l=>`
+        `;
+  }
+  getDashboardHtml(servers, apps, dbs, serverUrl) {
+    const logoUri = this._panel.webview.asWebviewUri(vscode10.Uri.joinPath(this._extensionUri, "public", "logo.svg"));
+    const serverCards = servers.map((s) => `
             <div class="card">
                 <div class="card-header">
-                    <h3>\u{1F5A5}\uFE0F ${l.name}</h3>
-                    <span class="badge ${l.settings?.is_reachable?"badge-success":"badge-danger"}">
-                        ${l.settings?.is_reachable?"Online":"Unreachable"}
+                    <h3>\u{1F5A5}\uFE0F ${s.name}</h3>
+                    <span class="badge ${s.settings?.is_reachable ? "badge-success" : "badge-danger"}">
+                        ${s.settings?.is_reachable ? "Online" : "Unreachable"}
                     </span>
                 </div>
                 <div class="card-body">
-                    <p>IP: <code>${l.ip}</code></p>
-                    <p>User: <code>${l.user}</code></p>
+                    <p>IP: <code>${s.ip}</code></p>
+                    <p>User: <code>${s.user}</code></p>
                 </div>
             </div>
-        `).join(""),c={running:"badge-success",deploying:"badge-warning",starting:"badge-warning",stopped:"badge-dark",exited:"badge-dark",error:"badge-danger",failed:"badge-danger"},r=t.map(l=>{let p=c[l.status?.toLowerCase()]||"badge-dark",f=l.name.length>20?l.name.substring(0,20)+"...":l.name,C=l.fqdn?`<a href="${l.fqdn}">${l.fqdn.replace("https://","").replace("http://","")}</a>`:"No URL",T=l.git_repository?`${l.git_repository}@${l.git_branch}`:"N/A",S=l.uuid||l.id;return`
+        `).join("");
+    const statusColors = {
+      "running": "badge-success",
+      "deploying": "badge-warning",
+      "starting": "badge-warning",
+      "stopped": "badge-dark",
+      "exited": "badge-dark",
+      "error": "badge-danger",
+      "failed": "badge-danger"
+    };
+    const appCards = apps.map((a) => {
+      const badgeClass = statusColors[a.status?.toLowerCase()] || "badge-dark";
+      const safeName = a.name.length > 20 ? a.name.substring(0, 20) + "..." : a.name;
+      const linkHtml = a.fqdn ? `<a href="${a.fqdn}">${a.fqdn.replace("https://", "").replace("http://", "")}</a>` : "No URL";
+      const gitHtml = a.git_repository ? `${a.git_repository}@${a.git_branch}` : "N/A";
+      const uuid = a.uuid || a.id;
+      return `
             <div class="card">
                 <div class="card-header">
-                    <h3 title="${l.name}">${f}</h3>
-                    <span class="badge ${p}">${l.status||"unknown"}</span>
+                    <h3 title="${a.name}">${safeName}</h3>
+                    <span class="badge ${badgeClass}">${a.status || "unknown"}</span>
                 </div>
                 <div class="card-body">
-                    <p class="truncate" title="${l.fqdn||"No URL"}">\u{1F310} ${C}</p>
-                    <p class="truncate" title="${l.git_repository}@${l.git_branch}">\u{1F4E6} ${T}</p>
+                    <p class="truncate" title="${a.fqdn || "No URL"}">\u{1F310} ${linkHtml}</p>
+                    <p class="truncate" title="${a.git_repository}@${a.git_branch}">\u{1F4E6} ${gitHtml}</p>
                 </div>
                 <div class="card-footer">
-                    <button class="icon-btn" onclick="openLogs('${S}', '${l.name}')" title="One-shot Logs">\u{1F4CB} Logs</button>
-                    <button class="icon-btn" onclick="openLiveLogs('${S}', '${l.name}')" title="Live Tail Logs">\u{1F4E1} Live Logs</button>
-                    <button class="icon-btn deploy-btn" onclick="deployApp('${S}')" title="Deploy">\u{1F680} Deploy</button>
+                    <button class="icon-btn" onclick="openLogs('${uuid}', '${a.name}')" title="One-shot Logs">\u{1F4CB} Logs</button>
+                    <button class="icon-btn" onclick="openLiveLogs('${uuid}', '${a.name}')" title="Live Tail Logs">\u{1F4E1} Live Logs</button>
+                    <button class="icon-btn deploy-btn" onclick="deployApp('${uuid}')" title="Deploy">\u{1F680} Deploy</button>
                 </div>
             </div>
-        `}).join(""),d=i.map(l=>{let p=c[l.status?.toLowerCase()]||"badge-dark";return`
+        `;
+    }).join("");
+    const dbCards = dbs.map((d) => {
+      const badgeClass = statusColors[d.status?.toLowerCase()] || "badge-dark";
+      return `
             <div class="card">
                 <div class="card-header">
-                    <h3>\u{1F5C4}\uFE0F ${l.name}</h3>
-                    <span class="badge ${p}">${l.status||"unknown"}</span>
+                    <h3>\u{1F5C4}\uFE0F ${d.name}</h3>
+                    <span class="badge ${badgeClass}">${d.status || "unknown"}</span>
                 </div>
                 <div class="card-body">
-                    <p>Type: <code>${l.type}</code></p>
+                    <p>Type: <code>${d.type}</code></p>
                 </div>
             </div>
-        `}).join("");return`
+        `;
+    }).join("");
+    return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -183,24 +1996,24 @@ Click to view logs`),f.command={title:"View Logs",command:"coolify.viewApplicati
             </head>
             <body>
                 <header>
-                    <img src="${a}" alt="Coolify" />
+                    <img src="${logoUri}" alt="Coolify" />
                     <h1>Coolify Infrastructure</h1>
-                    <div class="server-url">${n}</div>
+                    <div class="server-url">${serverUrl}</div>
                 </header>
                 
                 <section>
-                    <h2>\u{1F5A5}\uFE0F Servers (${e.length})</h2>
-                    <div class="grid">${o||"<p>No servers found.</p>"}</div>
+                    <h2>\u{1F5A5}\uFE0F Servers (${servers.length})</h2>
+                    <div class="grid">${serverCards || "<p>No servers found.</p>"}</div>
                 </section>
                 
                 <section>
-                    <h2>\u{1F4E6} Applications (${t.length})</h2>
-                    <div class="grid">${r||"<p>No applications found.</p>"}</div>
+                    <h2>\u{1F4E6} Applications (${apps.length})</h2>
+                    <div class="grid">${appCards || "<p>No applications found.</p>"}</div>
                 </section>
                 
                 <section>
-                    <h2>\u{1F5C4}\uFE0F Databases (${i.length})</h2>
-                    <div class="grid">${d||"<p>No databases found.</p>"}</div>
+                    <h2>\u{1F5C4}\uFE0F Databases (${dbs.length})</h2>
+                    <div class="grid">${dbCards || "<p>No databases found.</p>"}</div>
                 </section>
 
                 <script>
@@ -211,4 +2024,455 @@ Click to view logs`),f.command={title:"View Logs",command:"coolify.viewApplicati
                 </script>
             </body>
             </html>
-        `}dispose(){for(s.currentPanel=void 0,this._panel.dispose(),this.stopAutoRefresh();this._disposables.length;){let e=this._disposables.pop();e&&e.dispose()}}};function we(s,e,t,i,n){let a=(o,c)=>s.subscriptions.push(b.commands.registerCommand(o,c));a("coolify.login",async()=>{try{await b.authentication.getSession("coolify",["coolify"],{createIfNone:!0}),await i(),b.window.showInformationMessage("\u{1F389} Signed in to Coolify!")}catch(o){b.window.showErrorMessage(o instanceof Error?o.message:"Login failed")}}),a("coolify.logout",async()=>{await b.authentication.getSession("coolify",["coolify"])&&(await e.clearConfiguration(),await i(),b.window.showInformationMessage("Signed out of Coolify"))}),a("coolify.refreshApplications",async()=>{await t.loadData(),b.window.showInformationMessage("Coolify: Refreshed")}),a("coolify.openDashboard",()=>{Q.createOrShow(s.extensionUri,e)}),a("coolify.startDeployment",(o,c)=>{if(typeof o=="string")return N(e,o,c);if(o?.kind==="application"&&o.rawData){let r=o.rawData;return N(e,r.uuid||r.id||"",r.name)}return Me(e,t)}),a("coolify.deployCurrentProject",()=>ae(e,n)),a("coolify.cancelDeployment",()=>re(e)),a("coolify.startApplication",(o,c)=>{if(typeof o=="string")return R(e,o,c||"Application","start");if(o?.kind==="application"&&o.rawData){let r=o.rawData;return R(e,r.uuid||r.id||"",r.name,"start")}return ce(void 0,e)}),a("coolify.stopApplication",(o,c)=>{if(typeof o=="string")return R(e,o,c||"Application","stop");if(o?.kind==="application"&&o.rawData){let r=o.rawData;return R(e,r.uuid||r.id||"",r.name,"stop")}return le(void 0,e)}),a("coolify.restartApplication",(o,c)=>{if(typeof o=="string")return R(e,o,c||"Application","restart");if(o?.kind==="application"&&o.rawData){let r=o.rawData;return R(e,r.uuid||r.id||"",r.name,"restart")}return de(void 0,e)}),a("coolify.viewApplicationLogs",(o,c)=>{if(typeof o=="string")return B(e,{id:o,name:c||"Application"});if(o&&"kind"in o&&o.kind==="application"&&o.rawData){let r=o.rawData;return B(e,{id:r.uuid||r.id||"",name:r.name})}else if(o&&typeof o=="object"&&"id"in o)return B(e,o);return B(e)}),a("coolify.viewApplicationLogsLive",(o,c)=>{if(typeof o=="string")return j(e,{id:o,name:c||"Application"});if(o&&"kind"in o&&o.kind==="application"&&o.rawData){let r=o.rawData;return j(e,{id:r.uuid||r.id||"",name:r.name})}else if(o&&typeof o=="object"&&"id"in o)return j(e,o);return j(e)}),a("coolify.startDatabase",(o,c)=>{if(typeof o=="string")return Y(void 0,e,o,c);if(o?.kind==="database"&&o.rawData){let r=o.rawData;return Y(void 0,e,r.uuid,r.name)}return Y(void 0,e)}),a("coolify.stopDatabase",(o,c)=>{if(typeof o=="string")return G(void 0,e,o,c);if(o?.kind==="database"&&o.rawData){let r=o.rawData;return G(void 0,e,r.uuid,r.name)}return G(void 0,e)}),a("coolify.createDatabaseBackup",(o,c)=>{if(typeof o=="string")return z(e,{id:o,name:c||"Database"});if(o?.kind==="database"&&o.rawData){let r=o.rawData;return z(e,{id:r.uuid,name:r.name})}return z(e)}),a("coolify.openInBrowser",o=>fe(e,t,o)),a("coolify.copyUuid",o=>ge(t,o)),a("coolify.quickDeploy",()=>he(e,t)),a("coolify.testConnection",()=>me(e)),ve(s,e,t)}async function Me(s,e){let t=e.getCachedApplications();if(!t||t.length===0){b.window.showInformationMessage("No applications found");return}let i=await b.window.showQuickPick(t.map(n=>({label:n.name,description:n.status,detail:n.fqdn,id:n.id||n.uuid||""})),{placeHolder:"Select an application to deploy",title:"Start Deployment"});i&&await N(s,i.id,i.label)}async function R(s,e,t,i){let n=await s.getServerUrl(),a=await s.getToken();if(!n||!a)throw new Error("Not configured");let o=new g(n,a);await b.window.withProgress({location:b.ProgressLocation.Notification,title:`${i}ing ${t}...`,cancellable:!1},async()=>{i==="start"?await o.startApplication(e):i==="stop"?await o.stopApplication(e):await o.restartApplication(e),b.workspace.getConfiguration("coolify").get("enableNotifications",!0)&&b.window.showInformationMessage(`\u2705 ${t} ${i}ed`)})}var x=A(require("vscode"));var Ne="coolify",Re="Coolify",ye="coolify.auth.sessions",J=class{constructor(e,t){this.context=e;this.configManager=t;this._reg=x.authentication.registerAuthenticationProvider(Ne,Re,this,{supportsMultipleAccounts:!1})}_sessions=[];_storedSessions=new Map;_onDidChangeSessions=new x.EventEmitter;onDidChangeSessions=this._onDidChangeSessions.event;_reg;async getSessions(e){return await this._load(),!e||e.length===0?this._sessions:this._sessions.filter(t=>e.every(i=>t.scopes.includes(i)))}async createSession(e){let t=await this.configManager.getServerUrl();if(!t){let a=await x.window.showInputBox({ignoreFocusOut:!0,title:"Connect to Coolify",prompt:"Enter your Coolify server URL",placeHolder:"https://coolify.my-server.com",validateInput:o=>o?null:"URL is required"});if(!a)throw new Error("Cancelled");t=a.replace(/\/$/,""),await this.configManager.setServerUrl(t)}await x.env.openExternal(x.Uri.parse(`${t}/security/api-tokens`));let i=await x.window.showInputBox({ignoreFocusOut:!0,title:"Coolify \u2014 Paste API Token",prompt:"\u{1F510} Paste your API token from the browser tab that just opened",password:!0,placeHolder:"Paste token here\u2026",validateInput:a=>a?null:"Token is required"});if(!i)throw new Error("Cancelled");if(!await new g(t,i).verifyToken())throw new Error("Invalid token \u2014 please check and try again.");return await this.configManager.setToken(i),this._storeSession(t,i,[...e])}async removeSession(e){let t=this._sessions.find(i=>i.id===e);this._sessions=this._sessions.filter(i=>i.id!==e),this._storedSessions.delete(e),await this._save(),await this.configManager.clearConfiguration(),t&&this._onDidChangeSessions.fire({added:[],removed:[t],changed:[]})}async createSessionFromToken(e,t){await this.configManager.setServerUrl(e),await this.configManager.setToken(t),this._storeSession(e,t,["coolify"])}_storeSession(e,t,i){let n=`coolify-${Date.now()}`,a=Array.from(i),o={id:n,accessToken:t,account:{id:e,label:e.replace(/^https?:\/\//,"")},scopes:a};return this._sessions=[o],this._storedSessions.set(n,{...o,scopes:a,serverUrl:e}),this._save(),this._onDidChangeSessions.fire({added:[o],removed:[],changed:[]}),o}async _load(){let e=this.context.globalState.get(ye,[]);this._sessions=e.map(t=>({id:t.id,accessToken:t.accessToken,account:t.account,scopes:t.scopes})),e.forEach(t=>this._storedSessions.set(t.id,t))}async _save(){await this.context.globalState.update(ye,[...this._storedSessions.values()])}dispose(){this._reg.dispose(),this._onDidChangeSessions.dispose()}};var E=A(require("vscode"));var O=class{constructor(e,t,i){this.authProvider=e;this.configManager=t;this.onAuthenticated=i}async handleUri(e){let t=new URLSearchParams(e.query),i=t.get("token"),n=t.get("url"),a=e.path;if(a==="/auth"||a==="/callback"){if(!i||!n){E.window.showErrorMessage("Coolify: Invalid auth link \u2014 missing token or server URL.");return}let o=decodeURIComponent(n).replace(/\/$/,""),c=decodeURIComponent(i),r=new g(o,c);await E.window.withProgress({location:E.ProgressLocation.Notification,title:`\u{1F510} Authenticating with Coolify at ${o.replace(/^https?:\/\//,"")}\u2026`,cancellable:!1},async()=>{if(!await r.verifyToken()){E.window.showErrorMessage("Coolify: The token from the deep link is invalid or expired.");return}await this.authProvider.createSessionFromToken(o,c),await this.onAuthenticated(),E.window.showInformationMessage(`\u2705 Authenticated with Coolify at ${o.replace(/^https?:\/\//,"")}!`,"Open Sidebar").then(l=>{l==="Open Sidebar"&&E.commands.executeCommand("coolify-deployments.focus")})})}}};function Ue(){let s=k.env.appName??"",e=s.toLowerCase();return{name:s,isCursor:e.includes("cursor"),isTrae:e.includes("trae"),isWindsurf:e.includes("windsurf"),isVSCodium:e.includes("vscodium")||e.includes("codium"),isAntigravity:e.includes("antigravity")}}var _,U;function Be(s){let e=Ue();console.log(`[Coolify] Running in: ${e.name}`);let t=k.env.remoteName!==void 0&&k.env.remoteName!=="",i=s.globalState.get("coolify.remoteAdvisoryShown");t&&!i&&k.window.showInformationMessage(`Coolify: You are in a remote session (${k.env.remoteName}). Make sure your Coolify server is reachable FROM this remote host.`,"Got it").then(()=>{s.globalState.update("coolify.remoteAdvisoryShown",!0)});let n=`coolify.greeted.${e.name}`;if(!s.globalState.get(n)){let l=e.isAntigravity?"Antigravity":e.isCursor?"Cursor":e.isTrae?"Trae":e.isWindsurf?"Windsurf":e.isVSCodium?"VSCodium":"VS Code";k.window.showInformationMessage(`\u{1F44B} Coolify Deployments is ready in ${l}! Sign in via the Accounts menu to get started.`,"Sign In","Dismiss").then(p=>{p==="Sign In"&&k.commands.executeCommand("coolify.login")}),s.globalState.update(n,!0)}let a=new V(s);_=new K(a);let o=k.window.createTreeView("coolify-deployments",{treeDataProvider:_,showCollapseAll:!0});U=new F(a),s.subscriptions.push(o,{dispose:()=>_?.dispose()},{dispose:()=>U?.dispose()});async function c(){let l=await a.isConfigured();await k.commands.executeCommand("setContext","coolify.isConfigured",l),l?(await _?.loadData(),await U?.initialize()):_?.refresh()}c().then(async()=>{_?.initialize(),await a.isConfigured()&&U?.initialize()}),s.subscriptions.push(k.workspace.onDidChangeConfiguration(l=>{l.affectsConfiguration("coolify")&&c()})),we(s,a,_,c,U);let r=new J(s,a);s.subscriptions.push(r);let d=new O(r,a,c);s.subscriptions.push(k.window.registerUriHandler(d))}function je(){_?.dispose(),U?.dispose()}0&&(module.exports={activate,deactivate});
+        `;
+  }
+  dispose() {
+    _CoolifyDashboardPanel.currentPanel = void 0;
+    this._panel.dispose();
+    this.stopAutoRefresh();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+};
+
+// src/commands/index.ts
+function registerCommands(context, configManager, treeDataProvider2, updateConfigurationState, statusBarManager2) {
+  const register = (id, fn) => context.subscriptions.push(vscode11.commands.registerCommand(id, fn));
+  register("coolify.login", async () => {
+    try {
+      await vscode11.authentication.getSession("coolify", ["coolify"], { createIfNone: true });
+      await updateConfigurationState();
+      vscode11.window.showInformationMessage("\u{1F389} Signed in to Coolify!");
+    } catch (error) {
+      vscode11.window.showErrorMessage(error instanceof Error ? error.message : "Login failed");
+    }
+  });
+  register("coolify.logout", async () => {
+    const session = await vscode11.authentication.getSession("coolify", ["coolify"]);
+    if (session) {
+      await configManager.clearConfiguration();
+      await updateConfigurationState();
+      vscode11.window.showInformationMessage("Signed out of Coolify");
+    }
+  });
+  register("coolify.refreshApplications", async () => {
+    await treeDataProvider2.loadData();
+    vscode11.window.showInformationMessage("Coolify: Refreshed");
+  });
+  register("coolify.openDashboard", () => {
+    CoolifyDashboardPanel.createOrShow(context.extensionUri, configManager);
+  });
+  register("coolify.startDeployment", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return runDeploymentFlow(configManager, itemOrUuid, name);
+    } else if (itemOrUuid?.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return runDeploymentFlow(configManager, app.uuid || app.id || "", app.name);
+    }
+    return startDeploymentCommandWrapper(configManager, treeDataProvider2);
+  });
+  register("coolify.deployCurrentProject", () => deployCurrentProjectCommand(configManager, statusBarManager2));
+  register("coolify.cancelDeployment", () => cancelDeploymentCommand(configManager));
+  register("coolify.startApplication", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return _appAction(configManager, itemOrUuid, name || "Application", "start");
+    } else if (itemOrUuid?.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return _appAction(configManager, app.uuid || app.id || "", app.name, "start");
+    }
+    return startApplicationCommand(void 0, configManager);
+  });
+  register("coolify.stopApplication", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return _appAction(configManager, itemOrUuid, name || "Application", "stop");
+    } else if (itemOrUuid?.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return _appAction(configManager, app.uuid || app.id || "", app.name, "stop");
+    }
+    return stopApplicationCommand(void 0, configManager);
+  });
+  register("coolify.restartApplication", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return _appAction(configManager, itemOrUuid, name || "Application", "restart");
+    } else if (itemOrUuid?.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return _appAction(configManager, app.uuid || app.id || "", app.name, "restart");
+    }
+    return restartApplicationCommand(void 0, configManager);
+  });
+  register("coolify.viewApplicationLogs", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return viewApplicationLogsCommand(configManager, { id: itemOrUuid, name: name || "Application" });
+    } else if (itemOrUuid && "kind" in itemOrUuid && itemOrUuid.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return viewApplicationLogsCommand(configManager, { id: app.uuid || app.id || "", name: app.name });
+    } else if (itemOrUuid && typeof itemOrUuid === "object" && "id" in itemOrUuid) {
+      return viewApplicationLogsCommand(configManager, itemOrUuid);
+    }
+    return viewApplicationLogsCommand(configManager);
+  });
+  register("coolify.viewApplicationLogsLive", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return viewApplicationLogsLiveCommand(configManager, { id: itemOrUuid, name: name || "Application" });
+    } else if (itemOrUuid && "kind" in itemOrUuid && itemOrUuid.kind === "application" && itemOrUuid.rawData) {
+      const app = itemOrUuid.rawData;
+      return viewApplicationLogsLiveCommand(configManager, { id: app.uuid || app.id || "", name: app.name });
+    } else if (itemOrUuid && typeof itemOrUuid === "object" && "id" in itemOrUuid) {
+      return viewApplicationLogsLiveCommand(configManager, itemOrUuid);
+    }
+    return viewApplicationLogsLiveCommand(configManager);
+  });
+  register("coolify.startDatabase", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return startDatabaseCommand(void 0, configManager, itemOrUuid, name);
+    } else if (itemOrUuid?.kind === "database" && itemOrUuid.rawData) {
+      const db = itemOrUuid.rawData;
+      return startDatabaseCommand(void 0, configManager, db.uuid, db.name);
+    }
+    return startDatabaseCommand(void 0, configManager);
+  });
+  register("coolify.stopDatabase", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return stopDatabaseCommand(void 0, configManager, itemOrUuid, name);
+    } else if (itemOrUuid?.kind === "database" && itemOrUuid.rawData) {
+      const db = itemOrUuid.rawData;
+      return stopDatabaseCommand(void 0, configManager, db.uuid, db.name);
+    }
+    return stopDatabaseCommand(void 0, configManager);
+  });
+  register("coolify.createDatabaseBackup", (itemOrUuid, name) => {
+    if (typeof itemOrUuid === "string") {
+      return createDatabaseBackupCommand(configManager, { id: itemOrUuid, name: name || "Database" });
+    } else if (itemOrUuid?.kind === "database" && itemOrUuid.rawData) {
+      const db = itemOrUuid.rawData;
+      return createDatabaseBackupCommand(configManager, { id: db.uuid, name: db.name });
+    }
+    return createDatabaseBackupCommand(configManager);
+  });
+  register(
+    "coolify.openInBrowser",
+    (item) => openInBrowserCommand(configManager, treeDataProvider2, item)
+  );
+  register(
+    "coolify.copyUuid",
+    (item) => copyUuidCommand(treeDataProvider2, item)
+  );
+  register(
+    "coolify.quickDeploy",
+    () => quickDeployCommand(configManager, treeDataProvider2)
+  );
+  register(
+    "coolify.testConnection",
+    () => testConnectionCommand(configManager)
+  );
+  registerGitPushAdvisor(context, configManager, treeDataProvider2);
+}
+async function startDeploymentCommandWrapper(configManager, treeDataProvider2) {
+  const apps = treeDataProvider2.getCachedApplications();
+  if (!apps || apps.length === 0) {
+    vscode11.window.showInformationMessage("No applications found");
+    return;
+  }
+  const selected = await vscode11.window.showQuickPick(
+    apps.map((app) => ({
+      label: app.name,
+      description: app.status,
+      detail: app.fqdn,
+      id: app.id || app.uuid || ""
+    })),
+    { placeHolder: "Select an application to deploy", title: "Start Deployment" }
+  );
+  if (selected) {
+    await runDeploymentFlow(configManager, selected.id, selected.label);
+  }
+}
+async function _appAction(configManager, uuid, name, action) {
+  const serverUrl = await configManager.getServerUrl();
+  const token = await configManager.getToken();
+  if (!serverUrl || !token) {
+    throw new Error("Not configured");
+  }
+  const service = new CoolifyService(serverUrl, token);
+  await vscode11.window.withProgress(
+    { location: vscode11.ProgressLocation.Notification, title: `${action}ing ${name}...`, cancellable: false },
+    async () => {
+      if (action === "start") {
+        await service.startApplication(uuid);
+      } else if (action === "stop") {
+        await service.stopApplication(uuid);
+      } else {
+        await service.restartApplication(uuid);
+      }
+      const enableNotifications = vscode11.workspace.getConfiguration("coolify").get("enableNotifications", true);
+      if (enableNotifications) {
+        vscode11.window.showInformationMessage(`\u2705 ${name} ${action}ed`);
+      }
+    }
+  );
+}
+
+// src/auth/CoolifyAuthProvider.ts
+var vscode12 = __toESM(require("vscode"));
+var PROVIDER_ID = "coolify";
+var PROVIDER_LABEL = "Coolify";
+var SESSION_STORAGE_KEY = "coolify.auth.sessions";
+var CoolifyAuthProvider = class {
+  constructor(context, configManager) {
+    this.context = context;
+    this.configManager = configManager;
+    this._reg = vscode12.authentication.registerAuthenticationProvider(
+      PROVIDER_ID,
+      PROVIDER_LABEL,
+      this,
+      { supportsMultipleAccounts: false }
+    );
+  }
+  _sessions = [];
+  _storedSessions = /* @__PURE__ */ new Map();
+  _onDidChangeSessions = new vscode12.EventEmitter();
+  onDidChangeSessions = this._onDidChangeSessions.event;
+  _reg;
+  // ─── AuthenticationProvider interface ─────────────────────────────────────
+  async getSessions(scopes) {
+    await this._load();
+    if (!scopes || scopes.length === 0) {
+      return this._sessions;
+    }
+    return this._sessions.filter((s) => scopes.every((sc) => s.scopes.includes(sc)));
+  }
+  async createSession(scopes) {
+    let serverUrl = await this.configManager.getServerUrl();
+    if (!serverUrl) {
+      const input = await vscode12.window.showInputBox({
+        ignoreFocusOut: true,
+        title: "Connect to Coolify",
+        prompt: "Enter your Coolify server URL",
+        placeHolder: "https://coolify.my-server.com",
+        validateInput: (v) => v ? null : "URL is required"
+      });
+      if (!input) {
+        throw new Error("Cancelled");
+      }
+      serverUrl = input.replace(/\/$/, "");
+      await this.configManager.setServerUrl(serverUrl);
+    }
+    await vscode12.env.openExternal(vscode12.Uri.parse(`${serverUrl}/security/api-tokens`));
+    const token = await vscode12.window.showInputBox({
+      ignoreFocusOut: true,
+      title: "Coolify \u2014 Paste API Token",
+      prompt: "\u{1F510} Paste your API token from the browser tab that just opened",
+      password: true,
+      placeHolder: "Paste token here\u2026",
+      validateInput: (v) => v ? null : "Token is required"
+    });
+    if (!token) {
+      throw new Error("Cancelled");
+    }
+    const svc = new CoolifyService(serverUrl, token);
+    if (!await svc.verifyToken()) {
+      throw new Error("Invalid token \u2014 please check and try again.");
+    }
+    await this.configManager.setToken(token);
+    return this._storeSession(serverUrl, token, [...scopes]);
+  }
+  async removeSession(sessionId) {
+    const removed = this._sessions.find((s) => s.id === sessionId);
+    this._sessions = this._sessions.filter((s) => s.id !== sessionId);
+    this._storedSessions.delete(sessionId);
+    await this._save();
+    await this.configManager.clearConfiguration();
+    if (removed) {
+      this._onDidChangeSessions.fire({ added: [], removed: [removed], changed: [] });
+    }
+  }
+  // ─── Called by URI deep-link handler (Option 3) ────────────────────────────
+  async createSessionFromToken(serverUrl, token) {
+    await this.configManager.setServerUrl(serverUrl);
+    await this.configManager.setToken(token);
+    this._storeSession(serverUrl, token, ["coolify"]);
+  }
+  // ─── Internals ─────────────────────────────────────────────────────────────
+  _storeSession(serverUrl, token, scopes) {
+    const id = `coolify-${Date.now()}`;
+    const mutableScopes = Array.from(scopes);
+    const session = {
+      id,
+      accessToken: token,
+      account: { id: serverUrl, label: serverUrl.replace(/^https?:\/\//, "") },
+      scopes: mutableScopes
+    };
+    this._sessions = [session];
+    this._storedSessions.set(id, { ...session, scopes: mutableScopes, serverUrl });
+    this._save();
+    this._onDidChangeSessions.fire({ added: [session], removed: [], changed: [] });
+    return session;
+  }
+  async _load() {
+    const raw = this.context.globalState.get(SESSION_STORAGE_KEY, []);
+    this._sessions = raw.map((s) => ({ id: s.id, accessToken: s.accessToken, account: s.account, scopes: s.scopes }));
+    raw.forEach((s) => this._storedSessions.set(s.id, s));
+  }
+  async _save() {
+    await this.context.globalState.update(SESSION_STORAGE_KEY, [...this._storedSessions.values()]);
+  }
+  dispose() {
+    this._reg.dispose();
+    this._onDidChangeSessions.dispose();
+  }
+};
+
+// src/auth/UriHandler.ts
+var vscode13 = __toESM(require("vscode"));
+var CoolifyUriHandler = class {
+  constructor(authProvider, configManager, onAuthenticated) {
+    this.authProvider = authProvider;
+    this.configManager = configManager;
+    this.onAuthenticated = onAuthenticated;
+  }
+  async handleUri(uri) {
+    const params = new URLSearchParams(uri.query);
+    const token = params.get("token");
+    const serverUrl = params.get("url");
+    const path = uri.path;
+    if (path === "/auth" || path === "/callback") {
+      if (!token || !serverUrl) {
+        vscode13.window.showErrorMessage(
+          "Coolify: Invalid auth link \u2014 missing token or server URL."
+        );
+        return;
+      }
+      const decodedUrl = decodeURIComponent(serverUrl).replace(/\/$/, "");
+      const decodedToken = decodeURIComponent(token);
+      const svc = new CoolifyService(decodedUrl, decodedToken);
+      await vscode13.window.withProgress(
+        {
+          location: vscode13.ProgressLocation.Notification,
+          title: `\u{1F510} Authenticating with Coolify at ${decodedUrl.replace(/^https?:\/\//, "")}\u2026`,
+          cancellable: false
+        },
+        async () => {
+          const valid = await svc.verifyToken();
+          if (!valid) {
+            vscode13.window.showErrorMessage(
+              "Coolify: The token from the deep link is invalid or expired."
+            );
+            return;
+          }
+          await this.authProvider.createSessionFromToken(decodedUrl, decodedToken);
+          await this.onAuthenticated();
+          vscode13.window.showInformationMessage(
+            `\u2705 Authenticated with Coolify at ${decodedUrl.replace(/^https?:\/\//, "")}!`,
+            "Open Sidebar"
+          ).then((action) => {
+            if (action === "Open Sidebar") {
+              vscode13.commands.executeCommand("coolify-deployments.focus");
+            }
+          });
+        }
+      );
+    }
+  }
+};
+
+// src/extension.ts
+function detectEditorName() {
+  const appName = vscode14.env.appName ?? "";
+  const lower = appName.toLowerCase();
+  return {
+    name: appName,
+    isCursor: lower.includes("cursor"),
+    isTrae: lower.includes("trae"),
+    isWindsurf: lower.includes("windsurf"),
+    isVSCodium: lower.includes("vscodium") || lower.includes("codium"),
+    isAntigravity: lower.includes("antigravity")
+  };
+}
+var treeDataProvider;
+var statusBarManager;
+function activate(context) {
+  const editor = detectEditorName();
+  console.log(`[Coolify] Running in: ${editor.name}`);
+  const isRemote = vscode14.env.remoteName !== void 0 && vscode14.env.remoteName !== "";
+  const remoteAdvisoryShown = context.globalState.get("coolify.remoteAdvisoryShown");
+  if (isRemote && !remoteAdvisoryShown) {
+    vscode14.window.showInformationMessage(
+      `Coolify: You are in a remote session (${vscode14.env.remoteName}). Make sure your Coolify server is reachable FROM this remote host.`,
+      "Got it"
+    ).then(() => {
+      context.globalState.update("coolify.remoteAdvisoryShown", true);
+    });
+  }
+  const greetingKey = `coolify.greeted.${editor.name}`;
+  if (!context.globalState.get(greetingKey)) {
+    const editorLabel = editor.isAntigravity ? "Antigravity" : editor.isCursor ? "Cursor" : editor.isTrae ? "Trae" : editor.isWindsurf ? "Windsurf" : editor.isVSCodium ? "VSCodium" : "VS Code";
+    vscode14.window.showInformationMessage(
+      `\u{1F44B} Coolify Deployments is ready in ${editorLabel}! Sign in via the Accounts menu to get started.`,
+      "Sign In",
+      "Dismiss"
+    ).then((action) => {
+      if (action === "Sign In") {
+        vscode14.commands.executeCommand("coolify.login");
+      }
+    });
+    context.globalState.update(greetingKey, true);
+  }
+  const configManager = new ConfigurationManager(context);
+  treeDataProvider = new CoolifyTreeDataProvider(configManager);
+  const treeView = vscode14.window.createTreeView("coolify-deployments", {
+    treeDataProvider,
+    showCollapseAll: true
+  });
+  statusBarManager = new StatusBarManager(configManager);
+  context.subscriptions.push(
+    treeView,
+    { dispose: () => treeDataProvider?.dispose() },
+    { dispose: () => statusBarManager?.dispose() }
+  );
+  async function updateConfigurationState() {
+    const isConfigured = await configManager.isConfigured();
+    await vscode14.commands.executeCommand("setContext", "coolify.isConfigured", isConfigured);
+    if (isConfigured) {
+      await treeDataProvider?.loadData();
+      await statusBarManager?.initialize();
+    } else {
+      treeDataProvider?.refresh();
+    }
+  }
+  updateConfigurationState().then(async () => {
+    treeDataProvider?.initialize();
+    const isReady = await configManager.isConfigured();
+    if (isReady) {
+      statusBarManager?.initialize();
+    }
+  });
+  context.subscriptions.push(
+    vscode14.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("coolify")) {
+        updateConfigurationState();
+      }
+    })
+  );
+  registerCommands(context, configManager, treeDataProvider, updateConfigurationState, statusBarManager);
+  const authProvider = new CoolifyAuthProvider(context, configManager);
+  context.subscriptions.push(authProvider);
+  const uriHandler = new CoolifyUriHandler(
+    authProvider,
+    configManager,
+    updateConfigurationState
+  );
+  context.subscriptions.push(vscode14.window.registerUriHandler(uriHandler));
+}
+function deactivate() {
+  treeDataProvider?.dispose();
+  statusBarManager?.dispose();
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  activate,
+  deactivate
+});
+//# sourceMappingURL=extension.js.map

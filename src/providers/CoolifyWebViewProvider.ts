@@ -3,7 +3,7 @@ import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyService } from '../services/CoolifyService';
 import { getWebViewHtml, getWelcomeHtml } from '../utils/templateHelper';
 import { withRetry } from '../utils/retry';
-import { Application, Deployment, WebViewMessage, WebViewOutgoingMessage } from '../types';
+import { Application, Deployment, Server, Database, WebViewMessage, WebViewOutgoingMessage } from '../types';
 
 const REFRESH_INTERVAL = 5000;
 
@@ -48,10 +48,10 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   public async updateView(): Promise<void> {
-    if (this.pendingRefresh) clearTimeout(this.pendingRefresh);
+    if (this.pendingRefresh) { clearTimeout(this.pendingRefresh); }
 
     this.pendingRefresh = setTimeout(async () => {
-      if (!this.isViewValid()) return;
+      if (!this.isViewValid()) { return; }
 
       try {
         this._view!.webview.html = '';
@@ -98,7 +98,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
   }
 
   public async refreshData(): Promise<void> {
-    if (!this.isViewValid()) return;
+    if (!this.isViewValid()) { return; }
 
     try {
       await withRetry(async () => {
@@ -130,8 +130,8 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('setContext', 'coolify.isConfigured', false);
   }
 
-  private async updateWebViewState(connected: boolean, applications: any[], deployments: any[], servers: any[] = [], databases: any[] = []): Promise<void> {
-    if (!this.isViewValid()) return;
+  private async updateWebViewState(connected: boolean, applications: Application[], deployments: Deployment[], servers: Server[] = [], databases: Database[] = []): Promise<void> {
+    if (!this.isViewValid()) { return; }
 
     const uiApplications = this.mapApplicationsToUI(applications);
     const uiDeployments = this.mapDeploymentsToUI(deployments);
@@ -146,7 +146,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private mapApplicationsToUI(applications: any[]): Application[] {
+  private mapApplicationsToUI(applications: Application[]): Application[] {
     return applications.map((app) => ({
       id: app.uuid,
       uuid: app.uuid,
@@ -159,14 +159,14 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
     } as Application));
   }
 
-  private mapDeploymentsToUI(deployments: any[]): Deployment[] {
+  private mapDeploymentsToUI(deployments: Deployment[]): Deployment[] {
     return deployments.map((d) => ({
       id: d.id,
       applicationId: d.application_id,
       applicationName: d.application_name,
       status: d.status,
       commit: d.commit_message || `Deploying ${d.commit?.slice(0, 7) || 'latest'} commit`,
-      startedAt: new Date(d.created_at).toLocaleString(),
+      startedAt: new Date(d.created_at || new Date().toISOString()).toLocaleString(),
     } as Deployment));
   }
 
@@ -218,7 +218,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
   private setupMessageHandler(webviewView: vscode.WebviewView): void {
     this.messageHandler = webviewView.webview.onDidReceiveMessage(
       async (data: any) => {
-        if (!this.isViewValid()) return;
+        if (!this.isViewValid()) { return; }
 
         try {
           switch (data.type) {
@@ -307,7 +307,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
 
   private handleError(message: string, error: unknown): void {
     console.error(`${message}:`, error);
-    if (!this.isViewValid()) return;
+    if (!this.isViewValid()) { return; }
 
     if (error instanceof Error && error.message.includes('401')) {
       this.handleAuthenticationError();
@@ -345,7 +345,7 @@ export class CoolifyWebViewProvider implements vscode.WebviewViewProvider {
       const service = new CoolifyService(serverUrl, token);
       const applications = await service.getApplications();
 
-      return applications.map((app: any) => ({
+      return applications.map((app: Application) => ({
         id: app.uuid,
         name: app.name,
         status: app.status,

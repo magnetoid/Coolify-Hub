@@ -78,7 +78,7 @@ async function waitForCommitOnCoolify(
     for (let i = 0; i < maxAttempts; i++) {
         try {
             const app = await service.getApplication(appUuid);
-            const coolifysha = (app as any).git_commit_sha as string | undefined;
+            const coolifysha = app.git_commit_sha;
             channel.appendLine(`[${timestamp()}] Attempt ${i + 1}/${maxAttempts} — Coolify SHA: ${coolifysha?.slice(0, 8) ?? 'unknown'}`);
             if (coolifysha && localSha.startsWith(coolifysha) || (coolifysha && coolifysha.startsWith(localSha.slice(0, 8)))) {
                 channel.appendLine(`[${timestamp()}] ✅ Commit verified on Coolify!`);
@@ -132,9 +132,8 @@ async function deployAndStreamLogs(
             const deployInfo = await service.getDeployment(deployUuid);
             if (!deployInfo) { continue; }
 
-            const anyInfo = deployInfo as any;
-            if (anyInfo.logs && typeof anyInfo.logs === 'string') {
-                const currentLogs: string = anyInfo.logs;
+            if (deployInfo.logs && typeof deployInfo.logs === 'string') {
+                const currentLogs = deployInfo.logs;
                 if (currentLogs.length > lastLogLength) {
                     channel.append(currentLogs.substring(lastLogLength));
                     lastLogLength = currentLogs.length;

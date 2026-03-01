@@ -4,3 +4,4 @@ dist/
 *.vsix
 pnpm-lock.yaml
 .DS_Store
+.vscode-test/
