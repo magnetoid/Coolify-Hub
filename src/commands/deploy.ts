@@ -220,6 +220,45 @@ export async function runDeploymentFlow(
         if (workspaceFolders && workspaceFolders.length > 0) {
             const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
+            // ── Pre-flight Checks ─────────────────────────────────────────────
+
+            // 1. Uncommitted changes check
+            try {
+                const statusOutput = execSync('git status --porcelain', { cwd: workspaceRoot }).toString().trim();
+                if (statusOutput.length > 0) {
+                    const proceed = await vscode.window.showWarningMessage(
+                        `You have uncommitted changes. Only committed files will be pushed to Coolify. Proceed anyway?`,
+                        'Proceed', 'Cancel'
+                    );
+                    if (proceed !== 'Proceed') {
+                        channel.appendLine(`[${timestamp()}] 🛑 Deployment cancelled by user (uncommitted changes).`);
+                        return;
+                    }
+                }
+            } catch (e) {
+                channel.appendLine(`[${timestamp()}] ⚠️ Could not check git status.`);
+            }
+
+            // 2. Branch matching check
+            try {
+                const localBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot }).toString().trim();
+                const appDetails = await service.getApplication(appUuid);
+                const remoteBranch = appDetails?.git_branch;
+
+                if (remoteBranch && localBranch !== remoteBranch) {
+                    const proceed = await vscode.window.showWarningMessage(
+                        `Coolify expects branch '${remoteBranch}', but your local branch is '${localBranch}'. Your push might not trigger the correct deployment. Proceed anyway?`,
+                        'Proceed', 'Cancel'
+                    );
+                    if (proceed !== 'Proceed') {
+                        channel.appendLine(`[${timestamp()}] 🛑 Deployment cancelled by user (branch mismatch).`);
+                        return;
+                    }
+                }
+            } catch (e) {
+                channel.appendLine(`[${timestamp()}] ⚠️ Could not verify git branch match: ${e instanceof Error ? e.message : String(e)}`);
+            }
+
             // Get local HEAD SHA before pushing
             try {
                 localSha = execSync('git rev-parse HEAD', { cwd: workspaceRoot }).toString().trim();
@@ -233,7 +272,8 @@ export async function runDeploymentFlow(
             );
 
             if (!pushOk) {
-                vscode.window.showErrorMessage(`❌ Git push failed for ${appName}. Aborting deploy.`);
+                vscode.window.showErrorMessage(`❌ Git push failed for ${appName}. Check the Coolify Deploy Pipeline output for details.`);
+                channel.show(true); // Ensure output is visible on failure
                 return;
             }
 
