@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // ─── Status Bar ───────────────────────────────────────────────────────────
-  statusBarManager = new StatusBarManager(configManager);
+  statusBarManager = new StatusBarManager(configManager, treeDataProvider);
 
   context.subscriptions.push(
     treeView,

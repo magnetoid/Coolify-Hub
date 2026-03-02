@@ -1,4 +1,5 @@
 import { Application, Deployment, Project, Environment, Server, Database } from '../types';
+import { withRetry } from '../utils/retry';
 
 export class CoolifyService {
   constructor(private baseUrl: string, private token: string) { }
@@ -6,49 +7,65 @@ export class CoolifyService {
   // ─── Core Request Helper ─────────────────────────────────────────────────────
 
   private async fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const operation = async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
 
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-          ...(options?.headers || {}),
-        },
-        signal: controller.signal as RequestInit['signal'],
-      });
+      try {
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            'Content-Type': 'application/json',
+            ...(options?.headers || {}),
+          },
+          signal: controller.signal as RequestInit['signal'],
+        });
 
-      if (!response.ok) {
-        throw new Error(`API request failed (${response.status}): ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`API request failed (${response.status}): ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data as T;
+      } finally {
+        clearTimeout(timeout);
       }
+    };
 
-      const data = await response.json();
-      return data as T;
-    } finally {
-      clearTimeout(timeout);
-    }
+    return withRetry(operation, {
+      maxAttempts: 3,
+      baseDelay: 1000,
+      maxDelay: 5000,
+    });
   }
 
   private async fetchVoid(endpoint: string, method: string = 'GET'): Promise<boolean> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const operation = async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
 
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method,
-        headers: { Authorization: `Bearer ${this.token}` },
-        signal: controller.signal as RequestInit['signal'],
-      });
+      try {
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+          method,
+          headers: { Authorization: `Bearer ${this.token}` },
+          signal: controller.signal as RequestInit['signal'],
+        });
 
-      if (!response.ok) {
-        throw new Error(`Request failed (${response.status}): ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Request failed (${response.status}): ${response.statusText}`);
+        }
+        return true;
+      } finally {
+        clearTimeout(timeout);
       }
-      return true;
-    } finally {
-      clearTimeout(timeout);
-    }
+    };
+
+    return withRetry(operation, {
+      maxAttempts: 3,
+      baseDelay: 1000,
+      maxDelay: 5000,
+    });
   }
 
   // ─── Applications ─────────────────────────────────────────────────────────────
@@ -65,23 +82,31 @@ export class CoolifyService {
   }
 
   async getApplicationLogs(uuid: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const operation = async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
 
-    try {
-      const response = await fetch(`${this.baseUrl}/api/v1/applications/${uuid}/logs`, {
-        headers: { Authorization: `Bearer ${this.token}` },
-        signal: controller.signal as RequestInit['signal'],
-      });
+      try {
+        const response = await fetch(`${this.baseUrl}/api/v1/applications/${uuid}/logs`, {
+          headers: { Authorization: `Bearer ${this.token}` },
+          signal: controller.signal as RequestInit['signal'],
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch logs: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch logs: ${response.statusText}`);
+        }
+
+        return await response.text();
+      } finally {
+        clearTimeout(timeout);
       }
+    };
 
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return withRetry(operation, {
+      maxAttempts: 3,
+      baseDelay: 1000,
+      maxDelay: 5000,
+    });
   }
 
   async getApplication(uuid: string): Promise<Application> {

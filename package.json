@@ -2,7 +2,7 @@
   "name": "vscode-coolify",
   "displayName": "Coolify Deployments",
   "description": "Deploy, manage, and monitor Coolify applications, databases, and servers. Works in VS Code, Cursor, Trae, Windsurf, VSCodium, and any Open VSX-compatible editor.",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "author": {
     "name": "Marko Tiosavljevic",
     "url": "https://imbamarketing.com"
@@ -358,6 +358,11 @@
         "command": "coolify.deployCurrentProject",
         "title": "Coolify: Deploy Current Project",
         "icon": "$(rocket)"
+      },
+      {
+        "command": "coolify.installCli",
+        "title": "Coolify: Install Coolify CLI",
+        "icon": "$(terminal)"
       }
     ]
   },

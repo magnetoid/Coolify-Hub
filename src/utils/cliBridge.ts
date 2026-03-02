@@ -33,3 +33,13 @@ export async function runCliCommandInTerminal(command: string, terminalName: str
     // Explicitly send the coolify command with arguments
     terminal.sendText(`coolify ${command}`);
 }
+
+/**
+ * Creates a terminal and runs the official installation script for the Coolify CLI.
+ */
+export function installCoolifyCli(): void {
+    const terminal = vscode.window.createTerminal('Coolify CLI Installer');
+    terminal.show();
+    terminal.sendText('curl -fsSL https://raw.githubusercontent.com/coollabsio/coolify-cli/main/scripts/install.sh | bash');
+    vscode.window.showInformationMessage('Installing Coolify CLI in the terminal! Once finished, try viewing live logs again.');
+}

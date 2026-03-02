@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
-import { CoolifyService } from '../services/CoolifyService';
+import { CoolifyTreeDataProvider } from '../providers/CoolifyTreeDataProvider';
 import { Application } from '../types';
 
 const exec = util.promisify(cp.exec);
@@ -19,7 +19,6 @@ function normalizeGitUrl(url: string | undefined): string | null {
 
 export class StatusBarManager {
     private items: Map<string, vscode.StatusBarItem> = new Map();
-    private pollInterval?: NodeJS.Timeout;
     private isDisposed = false;
     private isRefreshing = false;
     private cachedRemotes: Set<string> | null = null;
@@ -29,7 +28,16 @@ export class StatusBarManager {
         return this.matchedApps;
     }
 
-    constructor(private configManager: ConfigurationManager) { }
+    constructor(
+        private configManager: ConfigurationManager,
+        private treeDataProvider: CoolifyTreeDataProvider
+    ) {
+        this.treeDataProvider.onDataRefreshed(() => {
+            if (!this.isDisposed) {
+                this.refreshStatusBar().catch(console.error);
+            }
+        });
+    }
 
     private async getWorkspaceGitRemotes(): Promise<Set<string>> {
         if (this.cachedRemotes) { return this.cachedRemotes; }
@@ -52,23 +60,6 @@ export class StatusBarManager {
 
     public async initialize(): Promise<void> {
         await this.refreshStatusBar();
-        this.startPolling();
-    }
-
-    private startPolling(): void {
-        if (this.pollInterval) {
-            return; // Already polling
-        }
-
-        const intervalMs = vscode.workspace
-            .getConfiguration('coolify')
-            .get<number>('refreshInterval', 5000);
-
-        this.pollInterval = setInterval(() => {
-            if (!this.isDisposed) {
-                this.refreshStatusBar().catch(console.error);
-            }
-        }, intervalMs);
     }
 
     public async refreshStatusBar(): Promise<void> {
@@ -89,8 +80,7 @@ export class StatusBarManager {
 
             if (!serverUrl || !token) { return; }
 
-            const service = new CoolifyService(serverUrl, token);
-            const applications = await service.getApplications();
+            const applications = this.treeDataProvider.getCachedApplications();
 
             const pinnedAppId = vscode.workspace
                 .getConfiguration('coolify')
@@ -198,9 +188,6 @@ export class StatusBarManager {
 
     public dispose(): void {
         this.isDisposed = true;
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-        }
         this.clearItems();
     }
 }

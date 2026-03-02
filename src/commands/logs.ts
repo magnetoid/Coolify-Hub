@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { CoolifyService } from '../services/CoolifyService';
 import { Application, Database } from '../types';
-import { isCoolifyCliInstalled, runCliCommandInTerminal } from '../utils/cliBridge';
+import { isCoolifyCliInstalled, runCliCommandInTerminal, installCoolifyCli } from '../utils/cliBridge';
 
 let logsOutputChannel: vscode.OutputChannel | undefined;
 
@@ -121,6 +121,18 @@ export async function viewApplicationLogsLiveCommand(
             vscode.window.showInformationMessage(`Opening live logs for ${targetName} via Coolify CLI...`);
             await runCliCommandInTerminal(`logs tail ${targetUuid}`, `Logs: ${targetName}`);
             return;
+        }
+
+        // ── CLI Installation Prompt ──
+        const installChoice = await vscode.window.showInformationMessage(
+            'The Coolify CLI is not installed. Installing it enables native terminal log streaming (with syntax highlighting and interactive sockets).',
+            'Install CLI',
+            'Use Fallback Viewer'
+        );
+
+        if (installChoice === 'Install CLI') {
+            installCoolifyCli();
+            return; // Give them time to install, they can run the command again later
         }
 
         // ── Fallback: HTTP Polling ──

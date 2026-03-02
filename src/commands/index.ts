@@ -11,6 +11,7 @@ import { viewApplicationLogsCommand, viewApplicationLogsLiveCommand, createDatab
 import { openInBrowserCommand, copyUuidCommand, quickDeployCommand, testConnectionCommand } from './browser';
 import { registerGitPushAdvisor } from './gitAdvisor';
 import { CoolifyDashboardPanel } from '../panels/CoolifyDashboardPanel';
+import { installCoolifyCli } from '../utils/cliBridge';
 
 export function registerCommands(
     context: vscode.ExtensionContext,
@@ -189,6 +190,8 @@ export function registerCommands(
     register('coolify.testConnection', () =>
         testConnectionCommand(configManager)
     );
+
+    register('coolify.installCli', () => installCoolifyCli());
 
     // ─── Git Advisor ─────────────────────────────────────────────────────────────
     registerGitPushAdvisor(context, configManager, treeDataProvider);

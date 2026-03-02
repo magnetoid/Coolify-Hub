@@ -57,6 +57,12 @@ Coolify Deployments works beautifully out-of-the-box, but it becomes even more p
 - **Zero-Config Authentication:** If you're logged into the CLI, the extension instantly reads your `~/.config/coolify/config.json` file. You won't have to enter a Server URL or API Token at all.
 - **Native Log Streaming:** When clicking "View Live App Logs", the extension automatically detects the `coolify` binary and spawns a native terminal tab. This offloads streaming to the CLI, giving you interactive colorization and real-time Socket power.
 
+### 🛡️ Pro-Tier Capabilities (v2.6.0)
+
+- **Native VS Code Git Authentication:** `git push` logic bypasses raw shells and securely hooks directly into the core `vscode.git` API—flawlessly dealing with complex SSH passphrases, tokens, or credential managers.
+- **Immediate Force Deployment:** Stuck Docker cache layer? Simply right-click any application in the sidebar and choose **"Force Deploy (No Cache)"** to bypass the standard queue and force a clean rebuild!
+- **Advanced Server Badges:** Running a multi-node cluster? The dashboard intelligently cross-references API data to auto-inject graphical "☁️ Server Name" tags directly on your applications so you never have to remember where your containers live.
+
 ---
 
 ## 🎛️ Control Center & UI

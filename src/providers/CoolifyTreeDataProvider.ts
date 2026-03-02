@@ -114,9 +114,13 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
     private _onDidChangeTreeData = new vscode.EventEmitter<CoolifyTreeItem | undefined | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private refreshInterval?: NodeJS.Timeout;
+    private _onDataRefreshed = new vscode.EventEmitter<void>();
+    readonly onDataRefreshed = this._onDataRefreshed.event;
+
+    private refreshTimeout?: NodeJS.Timeout;
     private isDisposed = false;
     private service?: CoolifyService;
+    private lastRefreshFailed = false;
 
     // Cached data
     private cachedProjects: Project[] = [];
@@ -133,13 +137,24 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
     }
 
     private startAutoRefresh(): void {
+        this.scheduleNextRefresh();
+    }
+
+    private scheduleNextRefresh(): void {
+        if (this.isDisposed) { return; }
+
         const intervalMs = vscode.workspace
             .getConfiguration('coolify')
             .get<number>('refreshInterval', 5000);
 
-        this.refreshInterval = setInterval(() => {
+        this.refreshTimeout = setTimeout(() => {
             if (!this.isDisposed) {
-                this.loadData().catch(console.error);
+                this.loadData().then(() => {
+                    this.scheduleNextRefresh();
+                }).catch((error) => {
+                    console.error('CoolifyTreeDataProvider: Auto-refresh error:', error);
+                    this.scheduleNextRefresh();
+                });
             }
         }, intervalMs);
     }
@@ -170,13 +185,22 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
                 svc.getDatabases(),
             ]);
 
+            if (projects.status === 'rejected' && applications.status === 'rejected' && servers.status === 'rejected' && databases.status === 'rejected') {
+                this.lastRefreshFailed = true;
+            } else {
+                this.lastRefreshFailed = false;
+            }
+
             this.cachedProjects = projects.status === 'fulfilled' ? projects.value : [];
             this.cachedApplications = applications.status === 'fulfilled' ? applications.value : [];
             this.cachedServers = servers.status === 'fulfilled' ? servers.value : [];
             this.cachedDatabases = databases.status === 'fulfilled' ? databases.value : [];
 
             this.refresh();
+            this._onDataRefreshed.fire();
         } catch (error) {
+            this.lastRefreshFailed = true;
+            this.refresh();
             console.error('CoolifyTreeDataProvider: Failed to load data:', error);
         }
     }
@@ -207,12 +231,17 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
 
         // Root level
         if (!element) {
-            return [
+            const items = [];
+            if (this.lastRefreshFailed) {
+                items.push(new CoolifyTreeItem('⚠️ Server Unreachable', vscode.TreeItemCollapsibleState.None, 'empty'));
+            }
+            items.push(
                 new CoolifyTreeItem('Projects', vscode.TreeItemCollapsibleState.Expanded, 'category'),
                 new CoolifyTreeItem('Applications', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
                 new CoolifyTreeItem('Servers', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
-                new CoolifyTreeItem('Databases', vscode.TreeItemCollapsibleState.Collapsed, 'category'),
-            ];
+                new CoolifyTreeItem('Databases', vscode.TreeItemCollapsibleState.Collapsed, 'category')
+            );
+            return items;
         }
 
         // Category children
@@ -333,9 +362,10 @@ export class CoolifyTreeDataProvider implements vscode.TreeDataProvider<CoolifyT
 
     public dispose(): void {
         this.isDisposed = true;
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
+        if (this.refreshTimeout) {
+            clearTimeout(this.refreshTimeout);
         }
         this._onDidChangeTreeData.dispose();
+        this._onDataRefreshed.dispose();
     }
 }
