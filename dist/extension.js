@@ -790,21 +790,21 @@ var CoolifyTreeDataProvider = class {
         return [new CoolifyTreeItem("No environments", vscode3.TreeItemCollapsibleState.None, "empty")];
       }
       return project.environments.map(
-        (env4) => new CoolifyTreeItem(
-          env4.name,
+        (env5) => new CoolifyTreeItem(
+          env5.name,
           vscode3.TreeItemCollapsibleState.Collapsed,
           "environment",
-          env4,
+          env5,
           String(project.uuid)
         )
       );
     }
     if (element.kind === "environment") {
-      const env4 = element.rawData;
+      const env5 = element.rawData;
       const apps = this.cachedApplications.filter(
         (a) => (
           // best-effort: match by environment id if available
-          env4.applications ? env4.applications.some((ea) => ea.id === a.id) : true
+          env5.applications ? env5.applications.some((ea) => ea.id === a.id) : true
         )
       );
       if (apps.length === 0) {
@@ -974,16 +974,17 @@ async function waitForCommitOnCoolify(service, appUuid, localSha, channel) {
       channel.appendLine(`[${timestamp()}] Attempt ${i + 1}/${maxAttempts} \u2014 Coolify SHA: ${coolifysha?.slice(0, 8) ?? "unknown"}`);
       if (coolifysha && localSha.startsWith(coolifysha) || coolifysha && coolifysha.startsWith(localSha.slice(0, 8))) {
         channel.appendLine(`[${timestamp()}] \u2705 Commit verified on Coolify!`);
-        return;
+        return true;
       }
     } catch (e) {
       channel.appendLine(`[${timestamp()}] (poll error: ${e instanceof Error ? e.message : String(e)})`);
     }
     await new Promise((r) => setTimeout(r, 3e3));
   }
-  channel.appendLine(`[${timestamp()}] \u26A0\uFE0F  Commit not yet visible on Coolify \u2014 continuing anyway (webhook may handle it).`);
+  channel.appendLine(`[${timestamp()}] \u26A0\uFE0F  Commit not yet visible on Coolify \u2014 timeout reached.`);
+  return false;
 }
-async function deployAndStreamLogs(service, appUuid, appName, channel, token, forceDeploy = false) {
+async function deployAndStreamLogs(service, appUuid, appName, appFqdn, channel, token, forceDeploy = false) {
   banner(channel, "\u{1F680}  STAGE 3 \u2014 Triggering Deployment");
   let deployUuid;
   try {
@@ -1025,7 +1026,14 @@ async function deployAndStreamLogs(service, appUuid, appName, channel, token, fo
         channel.appendLine(`
 [${timestamp()}] ${icon} Deployment ${status.toUpperCase()}.`);
         if (success) {
-          vscode4.window.showInformationMessage(`\u2705 Deployment successful: ${appName}`);
+          if (appFqdn) {
+            const action = await vscode4.window.showInformationMessage(`\u2705 Deployment successful: ${appName}`, "Test in Browser");
+            if (action === "Test in Browser") {
+              vscode4.env.openExternal(vscode4.Uri.parse(appFqdn));
+            }
+          } else {
+            vscode4.window.showInformationMessage(`\u2705 Deployment successful: ${appName}`);
+          }
         } else {
           vscode4.window.showErrorMessage(`\u274C Deployment failed: ${appName} (${status})`);
         }
@@ -1070,6 +1078,12 @@ async function runDeploymentFlow(configManager, appUuid, appName = "Application"
     channel.appendLine(`\u2551  Coolify Deploy Pipeline \u2014 ${appName.padEnd(28)} \u2551`);
     channel.appendLine(`\u2551  Started: ${timestamp().padEnd(46)} \u2551`);
     channel.appendLine(`\u255A${"\u2550".repeat(58)}\u255D`);
+    let appFqdn;
+    try {
+      const initialDetails = await service.getApplication(appUuid);
+      appFqdn = initialDetails?.fqdn;
+    } catch (e) {
+    }
     let localSha;
     const workspaceFolders = vscode4.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
@@ -1123,10 +1137,21 @@ async function runDeploymentFlow(configManager, appUuid, appName = "Application"
         return;
       }
       if (localSha) {
-        await vscode4.window.withProgress(
-          { location: vscode4.ProgressLocation.Notification, title: `[Coolify] ${appName}: Verifying commit on Coolify\u2026`, cancellable: false },
+        const syncOk = await vscode4.window.withProgress(
+          { location: vscode4.ProgressLocation.Notification, title: `[Coolify] ${appName}: Waiting for Coolify to sync from GitHub\u2026`, cancellable: false },
           () => waitForCommitOnCoolify(service, appUuid, localSha, channel)
         );
+        if (!syncOk) {
+          const proceed = await vscode4.window.showWarningMessage(
+            `Coolify hasn't synced the latest GitHub commit yet. Deploying now may build an older version. Deploy anyway?`,
+            "Deploy Anyway",
+            "Cancel"
+          );
+          if (proceed !== "Deploy Anyway") {
+            channel.appendLine(`[${timestamp()}] \u{1F6D1} Deployment cancelled by user (webhook sync timeout).`);
+            return;
+          }
+        }
       }
     } else {
       banner(channel, "\u{1F500}  STAGE 1 \u2014 Git Push");
@@ -1141,7 +1166,7 @@ async function runDeploymentFlow(configManager, appUuid, appName = "Application"
         cancellable: true
       },
       async (_progress, cancellationToken) => {
-        const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, channel, cancellationToken, forceDeploy);
+        const deploySuccess = await deployAndStreamLogs(service, appUuid, appName, appFqdn, channel, cancellationToken, forceDeploy);
         if (deploySuccess) {
           await streamAppLogsLive(service, appUuid, appName, channel, cancellationToken);
         }
