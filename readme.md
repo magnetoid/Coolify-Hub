@@ -2,7 +2,7 @@
 
 <img src="public/logo.png" alt="Coolify Deployments" width="110" />
 
-# Coolify Deployments 2.6 🚀
+# Coolify Deployments 2.6.2 🚀
 
 ### The fully-intelligent VS Code extension for [Coolify](https://coolify.io) — deploy, monitor and manage your self-hosted infrastructure automatically
 
@@ -67,8 +67,10 @@ You can simply tell your AI Agent: *"Please check my last 10 logs on Coolify for
 - `coolify.api.getApplicationLogs` (requires Application UUID)
 - `coolify.api.deployApplication` (requires Application UUID)
 
-### 🛡️ Pro-Tier Capabilities (v2.6.0)
+### 🛡️ Pro-Tier Capabilities (v2.6.2)
 
+- **Strict GitHub Sync Verification:** Prevents race conditions by verifying that your remote Coolify server has fully synced with GitHub's latest commit webhook before initiating a build.
+- **Clickable FQDNs:** Upon successful deployment, the application's Fully Qualified Domain Name becomes immediately clickable in the UI.
 - **Native VS Code Git Authentication:** `git push` logic bypasses raw shells and securely hooks directly into the core `vscode.git` API—flawlessly dealing with complex SSH passphrases, tokens, or credential managers.
 - **Immediate Force Deployment:** Stuck Docker cache layer? Simply right-click any application in the sidebar and choose **"Force Deploy (No Cache)"** to bypass the standard queue and force a clean rebuild!
 - **Advanced Server Badges:** Running a multi-node cluster? The dashboard intelligently cross-references API data to auto-inject graphical "☁️ Server Name" tags directly on your applications so you never have to remember where your containers live.
