@@ -363,6 +363,18 @@
         "command": "coolify.installCli",
         "title": "Coolify: Install Coolify CLI",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "coolify.api.getApplications",
+        "title": "Coolify API: Get Applications"
+      },
+      {
+        "command": "coolify.api.getApplicationLogs",
+        "title": "Coolify API: Get Application Logs"
+      },
+      {
+        "command": "coolify.api.deployApplication",
+        "title": "Coolify API: Deploy Application"
       }
     ]
   },

@@ -57,6 +57,16 @@ Coolify Deployments works beautifully out-of-the-box, but it becomes even more p
 - **Zero-Config Authentication:** If you're logged into the CLI, the extension instantly reads your `~/.config/coolify/config.json` file. You won't have to enter a Server URL or API Token at all.
 - **Native Log Streaming:** When clicking "View Live App Logs", the extension automatically detects the `coolify` binary and spawns a native terminal tab. This offloads streaming to the CLI, giving you interactive colorization and real-time Socket power.
 
+### 🤖 AI Agent Integration
+
+This extension natively supports AI-driven workflows by exposing Headless API Commands designed specifically for agents like **Cursor**, **Windsurf**, **Trae**, and **GitHub Copilot**.
+
+You can simply tell your AI Agent: *"Please check my last 10 logs on Coolify for the frontend app"* or *"Deploy my application."* The agent can execute these commands in the background to seamlessly interact with your Coolify server without touching any UI menus:
+
+- `coolify.api.getApplications`
+- `coolify.api.getApplicationLogs` (requires Application UUID)
+- `coolify.api.deployApplication` (requires Application UUID)
+
 ### 🛡️ Pro-Tier Capabilities (v2.6.0)
 
 - **Native VS Code Git Authentication:** `git push` logic bypasses raw shells and securely hooks directly into the core `vscode.git` API—flawlessly dealing with complex SSH passphrases, tokens, or credential managers.

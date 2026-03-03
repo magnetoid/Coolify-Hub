@@ -195,6 +195,46 @@ export function registerCommands(
 
     // ─── Git Advisor ─────────────────────────────────────────────────────────────
     registerGitPushAdvisor(context, configManager, treeDataProvider);
+
+    // ─── AI Agent API (Headless Commands) ────────────────────────────────────────
+    register('coolify.api.getApplications', async () => {
+        try {
+            const serverUrl = await configManager.getServerUrl();
+            const token = await configManager.getToken();
+            if (!serverUrl || !token) { return { error: 'Not configured' }; }
+            const service = new CoolifyService(serverUrl, token);
+            return await service.getApplications();
+        } catch (e) {
+            return { error: e instanceof Error ? e.message : String(e) };
+        }
+    });
+
+    register('coolify.api.getApplicationLogs', async (uuid: string) => {
+        if (!uuid) { return { error: 'UUID is required' }; }
+        try {
+            const serverUrl = await configManager.getServerUrl();
+            const token = await configManager.getToken();
+            if (!serverUrl || !token) { return { error: 'Not configured' }; }
+            const service = new CoolifyService(serverUrl, token);
+            return await service.getApplicationLogs(uuid);
+        } catch (e) {
+            return { error: e instanceof Error ? e.message : String(e) };
+        }
+    });
+
+    register('coolify.api.deployApplication', async (uuid: string) => {
+        if (!uuid) { return { error: 'UUID is required' }; }
+        try {
+            const serverUrl = await configManager.getServerUrl();
+            const token = await configManager.getToken();
+            if (!serverUrl || !token) { return { error: 'Not configured' }; }
+            const service = new CoolifyService(serverUrl, token);
+            const deployUuid = await service.startDeployment(uuid);
+            return { success: !!deployUuid, deployUuid };
+        } catch (e) {
+            return { error: e instanceof Error ? e.message : String(e) };
+        }
+    });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
