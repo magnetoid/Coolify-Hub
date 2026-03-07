@@ -7,18 +7,12 @@ export function isValidUrl(urlString: string): boolean {
 
     const url = new URL(urlString);
 
-    // More strict validation
-    // Must have a hostname with at least one dot or be localhost/IP
+    // Must have a hostname with at least one dot, be localhost, or be an IP address
     const hostname = url.hostname;
     const isValidHostname =
       hostname === 'localhost' ||
       /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || // IP address
       hostname.includes('.'); // Domain with at least one dot
-
-    // Must have a port for localhost or IP addresses
-    if (hostname === 'localhost' || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
-      return !!url.port;
-    }
 
     return isValidHostname;
   } catch {

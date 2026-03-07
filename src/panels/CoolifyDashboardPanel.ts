@@ -132,6 +132,7 @@ export class CoolifyDashboardPanel {
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
                 <style>
                     body { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
                     .container { text-align: center; }
@@ -149,20 +150,41 @@ export class CoolifyDashboardPanel {
         `;
     }
 
+    /** Generates a random nonce for Content-Security-Policy. */
+    private getNonce(): string {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
+    /** Escapes special HTML characters to prevent XSS from server-provided data. */
+    private escapeHtml(str: string | undefined | null): string {
+        if (!str) { return ''; }
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     private getDashboardHtml(servers: Server[], apps: Application[], dbs: Database[], serverUrl: string): string {
         const logoUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'public', 'logo.svg'));
 
         const serverCards = servers.map(s => `
             <div class="card">
                 <div class="card-header">
-                    <h3>🖥️ ${s.name}</h3>
+                    <h3>🖥️ ${this.escapeHtml(s.name)}</h3>
                     <span class="badge ${s.settings?.is_reachable ? 'badge-success' : 'badge-danger'}">
                         ${s.settings?.is_reachable ? 'Online' : 'Unreachable'}
                     </span>
                 </div>
                 <div class="card-body">
-                    <p>IP: <code>${s.ip}</code></p>
-                    <p>User: <code>${s.user}</code></p>
+                    <p>IP: <code>${this.escapeHtml(s.ip)}</code></p>
+                    <p>User: <code>${this.escapeHtml(s.user)}</code></p>
                 </div>
             </div>
         `).join('');
@@ -180,29 +202,38 @@ export class CoolifyDashboardPanel {
         const appCards = apps.map(a => {
             const badgeClass = statusColors[a.status?.toLowerCase()] || 'badge-dark';
             const safeName = a.name.length > 20 ? a.name.substring(0, 20) + '...' : a.name;
-            const linkHtml = a.fqdn ? `<a href="${a.fqdn}">${a.fqdn.replace('https://', '').replace('http://', '')}</a>` : 'No URL';
-            const gitHtml = a.git_repository ? `${a.git_repository}@${a.git_branch}` : 'N/A';
+            const escapedFqdn = this.escapeHtml(a.fqdn);
+            const linkHtml = a.fqdn
+                ? `<a href="${escapedFqdn}">${this.escapeHtml(a.fqdn.replace('https://', '').replace('http://', ''))}</a>`
+                : 'No URL';
+            const gitHtml = a.git_repository
+                ? `${this.escapeHtml(a.git_repository)}@${this.escapeHtml(a.git_branch)}`
+                : 'N/A';
             const uuid = a.uuid || a.id;
+            const escapedUuid = this.escapeHtml(uuid);
+            const escapedName = this.escapeHtml(a.name);
 
             const serverInfo = a.server_id ? servers.find(s => s.id === a.server_id || Number(s.id) === a.server_id) : undefined;
-            const serverBadge = serverInfo ? `<span class="badge" title="Running on ${serverInfo.name}" style="background:#374151; font-size:9px; padding:2px 6px; font-weight:normal; margin-left:6px;">☁️ ${serverInfo.name}</span>` : '';
+            const serverBadge = serverInfo
+                ? `<span class="badge" title="Running on ${this.escapeHtml(serverInfo.name)}" style="background:#374151; font-size:9px; padding:2px 6px; font-weight:normal; margin-left:6px;">☁️ ${this.escapeHtml(serverInfo.name)}</span>`
+                : '';
 
             return `
             <div class="card">
                 <div class="card-header">
                     <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                        <h3 title="${a.name}">${safeName} ${serverBadge}</h3>
+                        <h3 title="${escapedName}">${this.escapeHtml(safeName)} ${serverBadge}</h3>
                     </div>
-                    <span class="badge ${badgeClass}">${a.status || 'unknown'}</span>
+                    <span class="badge ${badgeClass}">${this.escapeHtml(a.status) || 'unknown'}</span>
                 </div>
                 <div class="card-body">
-                    <p class="truncate" title="${a.fqdn || 'No URL'}">🌐 ${linkHtml}</p>
-                    <p class="truncate" title="${a.git_repository}@${a.git_branch}">📦 ${gitHtml}</p>
+                    <p class="truncate" title="${this.escapeHtml(a.fqdn) || 'No URL'}">🌐 ${linkHtml}</p>
+                    <p class="truncate" title="${this.escapeHtml(a.git_repository)}@${this.escapeHtml(a.git_branch)}">📦 ${gitHtml}</p>
                 </div>
                 <div class="card-footer">
-                    <button class="icon-btn" onclick="openLogs('${uuid}', '${a.name}')" title="One-shot Logs">📋 Logs</button>
-                    <button class="icon-btn" onclick="openLiveLogs('${uuid}', '${a.name}')" title="Live Tail Logs">📡 Live Logs</button>
-                    <button class="icon-btn deploy-btn" onclick="deployApp('${uuid}')" title="Deploy">🚀 Deploy</button>
+                    <button class="icon-btn" onclick="openLogs('${escapedUuid}', '${escapedName}')" title="One-shot Logs">📋 Logs</button>
+                    <button class="icon-btn" onclick="openLiveLogs('${escapedUuid}', '${escapedName}')" title="Live Tail Logs">📡 Live Logs</button>
+                    <button class="icon-btn deploy-btn" onclick="deployApp('${escapedUuid}')" title="Deploy">🚀 Deploy</button>
                 </div>
             </div>
         `;
@@ -214,22 +245,24 @@ export class CoolifyDashboardPanel {
             return `
             <div class="card">
                 <div class="card-header">
-                    <h3>🗄️ ${d.name}</h3>
-                    <span class="badge ${badgeClass}">${d.status || 'unknown'}</span>
+                    <h3>🗄️ ${this.escapeHtml(d.name)}</h3>
+                    <span class="badge ${badgeClass}">${this.escapeHtml(d.status) || 'unknown'}</span>
                 </div>
                 <div class="card-body">
-                    <p>Type: <code>${d.type}</code></p>
+                    <p>Type: <code>${this.escapeHtml(d.type)}</code></p>
                 </div>
             </div>
         `;
         }).join('');
 
+        const nonce = this.getNonce();
         return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src ${this._panel.webview.cspSource}; script-src 'nonce-${nonce}';">
                 <title>Coolify Dashboard</title>
                 <style>
                     :root {
@@ -345,7 +378,7 @@ export class CoolifyDashboardPanel {
                 <header>
                     <img src="${logoUri}" alt="Coolify" />
                     <h1>Coolify Infrastructure</h1>
-                    <div class="server-url">${serverUrl}</div>
+                    <div class="server-url">${this.escapeHtml(serverUrl)}</div>
                 </header>
                 
                 <section>
@@ -363,7 +396,7 @@ export class CoolifyDashboardPanel {
                     <div class="grid">${dbCards || '<p>No databases found.</p>'}</div>
                 </section>
 
-                <script>
+                <script nonce="${nonce}">
                     const vscode = acquireVsCodeApi();
                     function openLogs(uuid, name) { vscode.postMessage({ type: 'openLogs', uuid, name }); }
                     function openLiveLogs(uuid, name) { vscode.postMessage({ type: 'openLiveLogs', uuid, name }); }

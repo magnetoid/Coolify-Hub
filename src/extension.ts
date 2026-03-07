@@ -101,13 +101,10 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   // ─── Boot ─────────────────────────────────────────────────────────────────
-  updateConfigurationState().then(async () => {
+  // updateConfigurationState already calls statusBarManager.initialize() when
+  // configured, so we only need to call treeDataProvider.initialize() here.
+  updateConfigurationState().then(() => {
     treeDataProvider?.initialize();
-    // Only start the status bar polling if the user is already authenticated
-    const isReady = await configManager.isConfigured();
-    if (isReady) {
-      statusBarManager?.initialize();
-    }
   });
 
   // ─── Listen for settings changes ─────────────────────────────────────────

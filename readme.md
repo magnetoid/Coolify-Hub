@@ -2,7 +2,7 @@
 
 <img src="public/logo.png" alt="Coolify Deployments" width="110" />
 
-# Coolify Deployments 2.6.2 🚀
+# Coolify Deployments 2.6.3 🚀
 
 ### The fully-intelligent VS Code extension for [Coolify](https://coolify.io) — deploy, monitor and manage your self-hosted infrastructure automatically
 
@@ -57,17 +57,19 @@ Coolify Deployments works beautifully out-of-the-box, but it becomes even more p
 - **Zero-Config Authentication:** If you're logged into the CLI, the extension instantly reads your `~/.config/coolify/config.json` file. You won't have to enter a Server URL or API Token at all.
 - **Native Log Streaming:** When clicking "View Live App Logs", the extension automatically detects the `coolify` binary and spawns a native terminal tab. This offloads streaming to the CLI, giving you interactive colorization and real-time Socket power.
 
-### 🤖 AI Agent Integration
+### 🤖 Zero-Config AI Workflows
 
 This extension natively supports AI-driven workflows by exposing Headless API Commands designed specifically for agents like **Cursor**, **Windsurf**, **Trae**, and **GitHub Copilot**.
 
-You can simply tell your AI Agent: *"Please check my last 10 logs on Coolify for the frontend app"* or *"Deploy my application."* The agent can execute these commands in the background to seamlessly interact with your Coolify server without touching any UI menus:
+You can simply tell your AI Agent: *"Please check coolify logs"* or *"push and deploy my application."* The agent can execute these commands in the background to automatically detect your workspace's app via git remotes and seamlessly interact with your Coolify server without touching any UI menus:
 
+- `coolify.api.getWorkspaceApp` - Auto-detects app UUID based on git remote
+- `coolify.api.getWorkspaceLogs` - Pulls live running logs for the workspace app
+- `coolify.api.getLatestDeploymentLogs` - Pulls build logs for the workspace app
+- `coolify.api.deployApplication` (requires UUID)
 - `coolify.api.getApplications`
-- `coolify.api.getApplicationLogs` (requires Application UUID)
-- `coolify.api.deployApplication` (requires Application UUID)
 
-### 🛡️ Pro-Tier Capabilities (v2.6.2)
+### 🛡️ Pro-Tier Capabilities (v2.6.3)
 
 - **Strict GitHub Sync Verification:** Prevents race conditions by verifying that your remote Coolify server has fully synced with GitHub's latest commit webhook before initiating a build.
 - **Clickable FQDNs:** Upon successful deployment, the application's Fully Qualified Domain Name becomes immediately clickable in the UI.
@@ -86,10 +88,6 @@ Browse your complete Coolify hierarchy (Projects ➡️ Environments ➡️ Appl
 ### 🎨 Sidebar Webview Dashboard
 
 A rich, Vercel-inspired dashboard view showing live health badges, deployment history, and quick-action buttons (Start, Stop, Deploy, Logs).
-
-### 🔀 Git Push Advisor
-
-Pushing code manually from the terminal? The extension intercepts it: if you push a branch that matches a linked Coolify application, a non-intrusive popup simply asks: *"marketing-site is configured to deploy from `main`. Deploy now?"*
 
 ---
 

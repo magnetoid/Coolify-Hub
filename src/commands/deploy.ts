@@ -105,7 +105,7 @@ async function waitForCommitOnCoolify(
             const app = await service.getApplication(appUuid);
             const coolifysha = app.git_commit_sha;
             channel.appendLine(`[${timestamp()}] Attempt ${i + 1}/${maxAttempts} — Coolify SHA: ${coolifysha?.slice(0, 8) ?? 'unknown'}`);
-            if (coolifysha && localSha.startsWith(coolifysha) || (coolifysha && coolifysha.startsWith(localSha.slice(0, 8)))) {
+            if ((coolifysha && localSha.startsWith(coolifysha)) || (coolifysha && coolifysha.startsWith(localSha.slice(0, 8)))) {
                 channel.appendLine(`[${timestamp()}] ✅ Commit verified on Coolify!`);
                 return true;
             }
@@ -471,7 +471,7 @@ export async function cancelDeploymentCommand(
         );
 
         if (selected) {
-            vscode.window.withProgress(
+            await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title: `Canceling ${selected.label}…`, cancellable: false },
                 async () => {
                     await service.cancelDeployment(selected.id);

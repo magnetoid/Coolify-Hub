@@ -37,6 +37,10 @@ export class StatusBarManager {
                 this.refreshStatusBar().catch(console.error);
             }
         });
+        // Invalidate cached remotes when the workspace folders change
+        vscode.workspace.onDidChangeWorkspaceFolders(() => {
+            this.cachedRemotes = null;
+        });
     }
 
     private async getWorkspaceGitRemotes(): Promise<Set<string>> {
